@@ -1,0 +1,11 @@
+[package]
+name = "velocity-sfml"
+version = "0.1.0"
+authors = ["Adam Soutar <me@aso.sh>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+velocity-core = { path = "../velocity-core" }
+sfml = "0.15.1"
