@@ -12,7 +12,7 @@ pub trait ShellLayer {
     fn write(&mut self, data: &[u8]);
 }
 
-pub fn get_shell_layer() -> Box<dyn ShellLayer> {
+pub fn get_shell_layer(rows: usize, cols: usize) -> Box<dyn ShellLayer> {
     // TODO: Actually check build-time flags if we ever support more than just macOS some day.
-    Box::new(mac_os::MacOsShellLayer::new())
+    Box::new(mac_os::MacOsShellLayer::new(rows, cols))
 }

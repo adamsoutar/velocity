@@ -66,11 +66,10 @@ impl ShellLayer for MacOsShellLayer {
 }
 
 impl MacOsShellLayer {
-    pub fn new() -> Self {
+    pub fn new(rows: usize, cols: usize) -> Self {
         let winsize = winsize {
-            // Default size from iTerm2
-            ws_col: 80,
-            ws_row: 25,
+            ws_col: cols as u16,
+            ws_row: rows as u16,
             // TODO: Is this important?
             ws_xpixel: 100,
             ws_ypixel: 100,
@@ -119,6 +118,7 @@ impl MacOsShellLayer {
         dup2(pty_slave, 1).unwrap(); // StdOut
         dup2(pty_slave, 2).unwrap(); // StdErr
 
+        // We no longer need this pointer to our slave fd (it's pointed to at 0, 1 and 2)
         close(pty_slave).unwrap();
 
         // python3 -c "while True: print('Hello world')"
