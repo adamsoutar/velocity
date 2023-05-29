@@ -30,6 +30,21 @@ fn main() {
                     window.close();
                     return;
                 }
+                // NOTE: "system" is the Super key
+                Event::KeyPressed {
+                    code: _code,
+                    alt: _alt,
+                    ctrl: _ctrl,
+                    shift: _shift,
+                    system: _system,
+                } => {
+                    // TODO: Handle things like ^C here
+                }
+                Event::TextEntered { unicode } => {
+                    let mut buffer = [0; 4];
+                    let bytes = unicode.encode_utf8(&mut buffer).as_bytes();
+                    tty.write(&bytes);
+                }
                 _ => {}
             }
         }

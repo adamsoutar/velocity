@@ -46,10 +46,7 @@ impl ShellLayer for MacOsShellLayer {
             }
         }
 
-        if self.master_fd_file.is_none() {
-            self.master_fd_file = Some(unsafe { File::from_raw_fd(self.pty_result.master) });
-        }
-        let read_count = self.master_fd_file.as_mut().unwrap().read(buffer).unwrap();
+        let read_count = self.get_master_file().read(buffer).unwrap();
 
         // TODO: Should we be pooling these up and sending them when the fd is drained?
         //   Currently, we'll be framerate limited when a program is printing more than 4K chars
@@ -60,8 +57,7 @@ impl ShellLayer for MacOsShellLayer {
     }
 
     fn write(&mut self, data: &[u8]) {
-        let mut file = unsafe { File::from_raw_fd(self.pty_result.master) };
-        file.write_all(data).unwrap();
+        self.get_master_file().write_all(data).unwrap();
     }
 }
 
@@ -89,6 +85,13 @@ impl MacOsShellLayer {
         // never reaches this point.
 
         layer
+    }
+
+    fn get_master_file(&mut self) -> &mut File {
+        if self.master_fd_file.is_none() {
+            self.master_fd_file = Some(unsafe { File::from_raw_fd(self.pty_result.master) });
+        }
+        self.master_fd_file.as_mut().unwrap()
     }
 
     unsafe fn fork_and_become_shell_as_child_process(&self) {
@@ -122,7 +125,7 @@ impl MacOsShellLayer {
         close(pty_slave).unwrap();
 
         // python3 -c "while True: print('Hello world')"
-        let shell_path = CString::new("/usr/bin/python3").unwrap();
+        let shell_path = CString::new("/bin/zsh").unwrap();
         // let argv = [ptr::null()];
         let test_env_var = CString::new("VELOCITY=TRUE").unwrap();
         // TODO: Set TERM and TERM_PROGRAM.

@@ -44,14 +44,8 @@ impl TtyState {
             return;
         }
 
-        println!(
-            "Cursor pos: x: {}, y: {}",
-            self.cursor_pos.x, self.cursor_pos.y
-        );
-
         // We have new characters, let's put them at the cursor location
         let cursor_line = self.scrollback_start + self.cursor_pos.y;
-        println!("cursor_line: {}", cursor_line);
         while self.scrollback_buffer.len() <= cursor_line {
             self.scrollback_buffer.push(vec![]);
         }
@@ -73,5 +67,12 @@ impl TtyState {
             line_buffer.insert(self.cursor_pos.x, c);
             self.cursor_pos.x += 1;
         }
+    }
+
+    pub fn write(&mut self, data: &[u8]) {
+        if data.len() == 1 && data[0] == 8 {
+            // TODO: Backspace
+        }
+        self.shell_layer.write(data);
     }
 }
