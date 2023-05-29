@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate nix;
 
-mod constants;
+pub mod constants;
 pub mod shell_layer;
+pub mod tty;

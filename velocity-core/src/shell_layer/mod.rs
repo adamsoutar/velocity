@@ -7,7 +7,7 @@ mod mac_os;
 pub trait ShellLayer {
     // This callback is called when we get bytes from the child process, OR if it has been long
     // enough since we last rendered a frame (a timeout is hit)
-    fn execute_and_run_shell(&mut self, callback: fn(&[u8; FD_BUFFER_SIZE_BYTES], usize));
+    fn read(&mut self, buffer: &mut [u8; FD_BUFFER_SIZE_BYTES], written: &mut usize);
     // This is called by our GUI layer when the user hits a keyboard key
     fn write(&mut self, data: &[u8]);
 }

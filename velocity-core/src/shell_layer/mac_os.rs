@@ -21,75 +21,75 @@ mod ioctl {
 }
 
 pub struct MacOsShellLayer {
-    pty_result: Option<OpenptyResult>,
-    byte_buffer: [u8; FD_BUFFER_SIZE_BYTES],
+    pty_result: OpenptyResult,
+    fd_drained: bool,
+    master_fd_file: Option<File>,
 }
 
 impl ShellLayer for MacOsShellLayer {
-    fn execute_and_run_shell(&mut self, callback: fn(&[u8; FD_BUFFER_SIZE_BYTES], usize)) {
-        let winsize = winsize {
-            // Default size from iTerm2
-            ws_col: 80,
-            ws_row: 21,
-            // TODO: Is this important?
-            ws_xpixel: 100,
-            ws_ypixel: 100,
-        };
-        // NOTE: This result does NOT implement Drop, so the file descriptors must be
-        //   closed manually (or realistically, we will leak them).
-        self.pty_result = Some(openpty(&winsize, None).expect("openpty() failed"));
+    fn read(&mut self, buffer: &mut [u8; FD_BUFFER_SIZE_BYTES], written: &mut usize) {
+        let poll_fd = PollFd::new(self.pty_result.master, PollFlags::POLLIN);
 
-        unsafe { self.fork_and_become_shell_as_child_process() }
-        // From now on we're in the parent process. The child uses exec to become the shell and
-        // never reaches this point.
-
-        // Read chunks from the child process forever
-        let poll_fd = PollFd::new(self.pty_result.unwrap().master, PollFlags::POLLIN);
-        let mut file = unsafe { File::from_raw_fd(self.pty_result.unwrap().master) };
-        let mut fd_drained = true;
-
-        loop {
-            if fd_drained {
-                // Poll until the fd is ready to read again
-                // This allows us to keep drawing frames and maintain a responsive
-                // window even though reading the file is blocked.
-                let poll_result = poll(&mut [poll_fd], FD_POLL_TIMEOUT_MS).unwrap();
-                if poll_result == 0 {
-                    // We timed out, now is the time to draw a frame
-                    // We didn't actually read any data, so we'll send a zero
-                    callback(&self.byte_buffer, 0);
-                    continue;
-                }
-                if poll_result == -1 {
-                    panic!("Poll failed");
-                }
+        if self.fd_drained {
+            // Poll until the fd is ready to read again
+            // This allows us to keep drawing frames and maintain a responsive
+            // window even though reading the file is blocked.
+            let poll_result = poll(&mut [poll_fd], FD_POLL_TIMEOUT_MS).unwrap();
+            if poll_result == 0 {
+                // We timed out, now is the time to draw a frame
+                // We didn't actually read any data, so we'll send a zero
+                *written = 0;
+                return;
             }
-
-            let read_count = file.read(&mut self.byte_buffer).unwrap();
-
-            // TODO: Should we be pooling these up and sending them when the fd is drained?
-            //   Currently, we'll be framerate limited when a program is printing more than 4K chars
-            //   per 16ms, which is not a low threshold.
-            callback(&self.byte_buffer, read_count);
-
-            if read_count != FD_BUFFER_SIZE_BYTES {
-                fd_drained = true;
+            if poll_result == -1 {
+                panic!("Poll failed");
             }
         }
+
+        if self.master_fd_file.is_none() {
+            self.master_fd_file = Some(unsafe { File::from_raw_fd(self.pty_result.master) });
+        }
+        let read_count = self.master_fd_file.as_mut().unwrap().read(buffer).unwrap();
+
+        // TODO: Should we be pooling these up and sending them when the fd is drained?
+        //   Currently, we'll be framerate limited when a program is printing more than 4K chars
+        //   per 16ms, which is not a low threshold.
+        *written = read_count;
+
+        self.fd_drained = read_count != FD_BUFFER_SIZE_BYTES;
     }
 
     fn write(&mut self, data: &[u8]) {
-        let mut file = unsafe { File::from_raw_fd(self.pty_result.unwrap().master) };
+        let mut file = unsafe { File::from_raw_fd(self.pty_result.master) };
         file.write_all(data).unwrap();
     }
 }
 
 impl MacOsShellLayer {
     pub fn new() -> Self {
-        MacOsShellLayer {
-            pty_result: None,
-            byte_buffer: [0; FD_BUFFER_SIZE_BYTES],
-        }
+        let winsize = winsize {
+            // Default size from iTerm2
+            ws_col: 80,
+            ws_row: 25,
+            // TODO: Is this important?
+            ws_xpixel: 100,
+            ws_ypixel: 100,
+        };
+        // NOTE: This result does NOT implement Drop, so the file descriptors must be
+        //   closed manually (or realistically, we will leak them).
+        let pty_result = openpty(&winsize, None).expect("openpty() failed");
+
+        let layer = MacOsShellLayer {
+            pty_result,
+            fd_drained: true,
+            master_fd_file: None,
+        };
+
+        unsafe { layer.fork_and_become_shell_as_child_process() }
+        // From now on we're in the parent process. The child uses exec to become the shell and
+        // never reaches this point.
+
+        layer
     }
 
     unsafe fn fork_and_become_shell_as_child_process(&self) {
@@ -102,7 +102,7 @@ impl MacOsShellLayer {
         }
 
         // The child process doesn't need a reference to the master PTY file.
-        close(self.pty_result.unwrap().master).unwrap();
+        close(self.pty_result.master).unwrap();
 
         // Put the child process in a different process group to the parent.
         // This is required for the shell program to spawn sub-processes and keep track of the
@@ -111,7 +111,7 @@ impl MacOsShellLayer {
 
         // Set the slave file to the "controlling terminal" of this process.
         // Slightly black-box magic to me.
-        let pty_slave = self.pty_result.unwrap().slave;
+        let pty_slave = self.pty_result.slave;
         ioctl::tiocsctty(pty_slave).unwrap();
 
         // Set basic io file descriptors for this process to read/write from the slave file
