@@ -2,5 +2,4 @@
 extern crate nix;
 
 mod constants;
-pub mod process;
-mod shell_layer;
+pub mod shell_layer;
