@@ -12,3 +12,5 @@ pub const FD_POLL_TIMEOUT_MS: c_int = 1000 / TARGET_FRAMERATE as c_int - RENDER_
 // Essentially how many character chunks we're confident we can draw in one go without
 // stalling.
 pub const FD_BUFFER_SIZE_BYTES: usize = 4096;
+// This is the question mark in a black diamond we'll print when our unicode parser falls over.
+pub const UNICODE_REPLACEMENT_CHARACTER: char = '\u{FFFD}';

@@ -1,1 +1,4 @@
 target/
+vendor/
+*.test.txt
+.DS_Store
