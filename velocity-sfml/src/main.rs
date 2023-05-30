@@ -1,4 +1,3 @@
-use velocity_core::constants::*;
 use velocity_core::tty::TtyState;
 
 use sfml::graphics::*;
@@ -19,7 +18,7 @@ fn main() {
     );
 
     // TODO: Customisable fonts
-    let font = Font::from_file("/System/Library/Fonts/Menlo.ttc").unwrap();
+    let font = Font::from_file("/System/Library/Fonts/Monaco.ttf").unwrap();
     let font_width = font.glyph(65, FONT_SIZE, false, 0.).advance;
 
     let mut tty = TtyState::new();

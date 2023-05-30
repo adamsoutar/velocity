@@ -12,5 +12,21 @@ pub const FD_POLL_TIMEOUT_MS: c_int = 1000 / TARGET_FRAMERATE as c_int - RENDER_
 // Essentially how many character chunks we're confident we can draw in one go without
 // stalling.
 pub const FD_BUFFER_SIZE_BYTES: usize = 4096;
-// This is the question mark in a black diamond we'll print when our unicode parser falls over.
-pub const UNICODE_REPLACEMENT_CHARACTER: char = '\u{FFFD}';
+
+pub mod special_characters {
+    // Question mark in a black diamond
+    pub const REPLACEMENT_CHARACTER: char = '\u{FFFD}';
+    pub const BACKSPACE: char = '\u{0008}';
+    // Introduces control sequences
+    pub const ESCAPE: char = '\u{001B}';
+    // Causes a ding noise when printed. Well... it should do
+    pub const BELL: char = '\u{0007}';
+    pub const HORIZONTAL_TAB: char = '\u{0009}';
+    pub const NEWLINE: char = '\u{000A}'; // \n
+    pub const VERTICAL_TAB: char = '\u{000B}';
+    // I think this does new page - like "cls" on Windows
+    pub const FORMFEED: char = '\u{000C}';
+    // Pushes to the start of the line like a typewriter. Used for progress bars
+    pub const CARRIAGE_RETURN: char = '\u{000D}';
+    pub const DELETE: char = '\u{007F}';
+}

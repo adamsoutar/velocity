@@ -1,4 +1,4 @@
-use crate::constants::*;
+use crate::constants::{special_characters::*, *};
 use crate::shell_layer::{get_shell_layer, ShellLayer};
 
 pub struct TtySize {
@@ -43,7 +43,7 @@ impl TtyState {
                 b if b & 0b1111_0000 == 0b1110_0000 => 3,
                 b if b & 0b1111_1000 == 0b1111_0000 => 4,
                 // Invalid character start, we've broken
-                _ => return Some(UNICODE_REPLACEMENT_CHARACTER),
+                _ => return Some(REPLACEMENT_CHARACTER),
             };
         }
 
@@ -76,9 +76,16 @@ impl TtyState {
             //   scroll down.
 
             let mut line_buffer = &mut self.scrollback_buffer[cursor_line];
-            if parsed_char == '\n' || self.cursor_pos.x >= 80 {
+            if parsed_char == NEWLINE || self.cursor_pos.x >= 80 {
                 self.cursor_pos.x = 0;
                 self.cursor_pos.y += 1;
+
+                // If we're pushed too low, scroll
+                if self.cursor_pos.y >= self.size.rows {
+                    self.cursor_pos.y -= 1;
+                    self.scrollback_start += 1;
+                }
+
                 self.scrollback_buffer.push(vec![]);
                 line_buffer =
                     &mut self.scrollback_buffer[self.scrollback_start + self.cursor_pos.y];
@@ -86,8 +93,14 @@ impl TtyState {
                     return;
                 }
             }
-            line_buffer.insert(self.cursor_pos.x, parsed_char);
-            self.cursor_pos.x += 1;
+
+            if parsed_char == BACKSPACE {
+                line_buffer.pop();
+                self.cursor_pos.x -= 1;
+            } else {
+                line_buffer.insert(self.cursor_pos.x, parsed_char);
+                self.cursor_pos.x += 1;
+            }
         }
     }
 

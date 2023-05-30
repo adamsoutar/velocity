@@ -124,13 +124,17 @@ impl MacOsShellLayer {
         // We no longer need this pointer to our slave fd (it's pointed to at 0, 1 and 2)
         close(pty_slave).unwrap();
 
-        // python3 -c "while True: print('Hello world')"
         let shell_path = CString::new("/bin/zsh").unwrap();
-        // let argv = [ptr::null()];
-        let test_env_var = CString::new("VELOCITY=TRUE").unwrap();
-        // TODO: Set TERM and TERM_PROGRAM.
         // TODO: Check if the rest of the env from the child process is inherited.
-        let env = [test_env_var.as_ptr(), ptr::null()];
+        let env_vars = [
+            // This is very important, otherwise the shell won't talk to us properly
+            // TODO: Eventually support xterm-256color
+            CString::new("TERM=xterm-16color").unwrap(),
+            // This is just showing off :)
+            CString::new("TERM_PROGRAM=velocity").unwrap(),
+        ];
+        let mut c_env_vars: Vec<*const i8> = env_vars.iter().map(|s| s.as_ptr()).collect();
+        c_env_vars.push(ptr::null());
 
         // The way the variadic arguments work here are:
         // 1 - The executable path
@@ -144,7 +148,7 @@ impl MacOsShellLayer {
             shell_path.as_ptr(),
             shell_path.clone().as_ptr(),
             ptr::null() as *const c_void,
-            env.as_ptr(),
+            c_env_vars.as_slice().as_ptr(),
         );
     }
 }
