@@ -1,4 +1,4 @@
 target/
-vendor/
+vendors/
 *.test.txt
 .DS_Store
