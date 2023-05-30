@@ -11,6 +11,14 @@ pub struct CursorPosition {
     pub y: usize,
 }
 
+// Not vim-related.
+// Confession hidden deep in my source code: I have no idea how to use vim.
+// Indicates whether we're mid escape-sequence parsing or not
+enum InsertionMode {
+    Standard,
+    EscapeSequence,
+}
+
 pub struct TtyState {
     pub size: TtySize,
     pub cursor_pos: CursorPosition,
@@ -25,6 +33,7 @@ pub struct TtyState {
     // A unicode scalar is up to four bytes long, and we'll know how long it's
     // going to be when it starts
     remaining_unicode_scalar_bytes: u8,
+    insertion_mode: InsertionMode,
 }
 
 impl TtyState {
@@ -67,40 +76,84 @@ impl TtyState {
 
     fn insert_byte(&mut self, next_byte: u8) {
         if let Some(parsed_char) = self.parse_partial_unicode(next_byte) {
-            // TODO: Handle backspace
-            let cursor_line = self.scrollback_start + self.cursor_pos.y;
-            while self.scrollback_buffer.len() <= cursor_line {
-                self.scrollback_buffer.push(vec![]);
+            match self.insertion_mode {
+                InsertionMode::Standard => self.standard_insert_char(parsed_char),
+                InsertionMode::EscapeSequence => self.escape_insert_char(parsed_char),
             }
-            // TODO: If that pushed things so that scrollback_start is more than 25 lines from the end,
-            //   scroll down.
+        }
+    }
 
-            let mut line_buffer = &mut self.scrollback_buffer[cursor_line];
-            if parsed_char == NEWLINE || self.cursor_pos.x >= 80 {
-                self.cursor_pos.x = 0;
-                self.cursor_pos.y += 1;
+    fn escape_insert_char(&mut self, c: char) {
+        match c {
+            // Most control sequences end with a lowercase letter,
+            // so this is probably a fine-ish way to ignore codes for now
+            'a' => {}
+            'b' => {}
+            'c' => {}
+            'd' => {}
+            'e' => {}
+            'f' => {}
+            'g' => {}
+            'h' => {}
+            'i' => {}
+            'j' => {}
+            'k' => {}
+            'l' => {}
+            'm' => {}
+            'n' => {}
+            'o' => {}
+            'p' => {}
+            'q' => {}
+            'r' => {}
+            's' => {}
+            't' => {}
+            'u' => {}
+            'v' => {}
+            'w' => {}
+            'x' => {}
+            'y' => {}
+            'z' => {}
+            _ => return,
+        }
+        self.insertion_mode = InsertionMode::Standard
+    }
 
-                // If we're pushed too low, scroll
-                if self.cursor_pos.y >= self.size.rows {
-                    self.cursor_pos.y -= 1;
-                    self.scrollback_start += 1;
-                }
+    fn standard_insert_char(&mut self, c: char) {
+        if c == ESCAPE {
+            // That's the start of an escape sequence
+            self.insertion_mode = InsertionMode::EscapeSequence;
+            return;
+        }
 
-                self.scrollback_buffer.push(vec![]);
-                line_buffer =
-                    &mut self.scrollback_buffer[self.scrollback_start + self.cursor_pos.y];
-                if parsed_char == '\n' {
-                    return;
-                }
+        let cursor_line = self.scrollback_start + self.cursor_pos.y;
+        while self.scrollback_buffer.len() <= cursor_line {
+            self.scrollback_buffer.push(vec![]);
+        }
+
+        let mut line_buffer = &mut self.scrollback_buffer[cursor_line];
+        if c == NEWLINE || self.cursor_pos.x >= 80 {
+            self.cursor_pos.x = 0;
+            self.cursor_pos.y += 1;
+
+            // If we're pushed too low, scroll
+            if self.cursor_pos.y >= self.size.rows {
+                self.cursor_pos.y -= 1;
+                self.scrollback_start += 1;
             }
 
-            if parsed_char == BACKSPACE {
-                line_buffer.pop();
-                self.cursor_pos.x -= 1;
-            } else {
-                line_buffer.insert(self.cursor_pos.x, parsed_char);
-                self.cursor_pos.x += 1;
+            self.scrollback_buffer.push(vec![]);
+            line_buffer = &mut self.scrollback_buffer[self.scrollback_start + self.cursor_pos.y];
+            if c == '\n' {
+                return;
             }
+        }
+
+        if c == BACKSPACE {
+            line_buffer.pop();
+            self.cursor_pos.x -= 1;
+        } else {
+            line_buffer.insert(self.cursor_pos.x, c);
+            self.cursor_pos.x += 1;
         }
     }
 
@@ -134,6 +187,7 @@ impl TtyState {
             shell_layer,
             current_unicode_scalar: vec![],
             remaining_unicode_scalar_bytes: 0,
+            insertion_mode: InsertionMode::Standard,
         }
     }
 }

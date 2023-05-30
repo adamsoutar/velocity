@@ -18,7 +18,8 @@ fn main() {
     );
 
     // TODO: Customisable fonts
-    let font = Font::from_file("/System/Library/Fonts/Monaco.ttf").unwrap();
+    // iTerm uses "Monaco", which looks better but isn't monospaced.
+    let font = Font::from_file("/System/Library/Fonts/Menlo.ttc").unwrap();
     let font_width = font.glyph(65, FONT_SIZE, false, 0.).advance;
 
     let mut tty = TtyState::new();
@@ -70,6 +71,7 @@ fn main() {
             RectangleShape::with_size(Vector2f::new(font_width, FONT_SIZE as f32));
         cursor_block.set_fill_color(Color::WHITE);
         cursor_block.set_position(Vector2f::new(
+            // TODO: This is wrong if the line has non-printable characters in it
             tty.cursor_pos.x as f32 * font_width,
             tty.cursor_pos.y as f32 * FONT_SIZE as f32,
         ));

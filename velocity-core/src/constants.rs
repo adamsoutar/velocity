@@ -17,7 +17,7 @@ pub mod special_characters {
     // Question mark in a black diamond
     pub const REPLACEMENT_CHARACTER: char = '\u{FFFD}';
     pub const BACKSPACE: char = '\u{0008}';
-    // Introduces control sequences
+    // Introduces escape sequences
     pub const ESCAPE: char = '\u{001B}';
     // Causes a ding noise when printed. Well... it should do
     pub const BELL: char = '\u{0007}';
