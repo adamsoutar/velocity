@@ -157,8 +157,8 @@ impl TtyState {
         self.shell_layer.write(data);
     }
 
-    pub fn new() -> Self {
-        let size = TtySize { cols: 80, rows: 25 };
+    pub fn new(cols: usize, rows: usize) -> Self {
+        let size = TtySize { cols, rows };
         let shell_layer = get_shell_layer(size.rows, size.cols);
         TtyState {
             size,

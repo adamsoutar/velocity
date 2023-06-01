@@ -27,50 +27,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
-name = "csfml-audio-sys"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b928d3b663c6d4d45c330a254b432e3a228cba3851207bda5542fb9b978a8242"
-dependencies = [
- "csfml-system-sys",
- "sfml-build",
-]
-
-[[package]]
-name = "csfml-graphics-sys"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e4f0c658045598446f1968df8acf047787e70dc44962686f54ec0d9835aed3e"
-dependencies = [
- "csfml-system-sys",
- "csfml-window-sys",
- "sfml-build",
-]
-
-[[package]]
-name = "csfml-system-sys"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ebeefc2da7f0568d54eb798706bbb1aa6fd589cda7a84c1188b860773ace35d"
-dependencies = [
- "sfml-build",
-]
-
-[[package]]
-name = "csfml-window-sys"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d8d000d0a6646167f7ccece9855718145c3e25ab738c9bc8ffeedfa17c41dd3"
-dependencies = [
- "csfml-system-sys",
- "sfml-build",
-]
-
-[[package]]
 name = "libc"
 version = "0.2.144"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b00cc1c228a6782d0f076e7b232802e0c5689d41bb5df366f2a6b6621cfdfe1"
+
+[[package]]
+name = "link-cplusplus"
+version = "1.0.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ecd207c9c713c34f95a097a5b029ac2ce6010530c7b49d7fea24d977dede04f5"
+dependencies = [
+ "cc",
+]
 
 [[package]]
 name = "memoffset"
@@ -118,6 +87,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-traits"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "578ede34cf02f8924ab9447f50c28075b4d3e5b269972345e7e0372b38c6cdcd"
+dependencies = [
+ "autocfg",
+]
+
+[[package]]
+name = "once_cell"
+version = "1.17.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9670a07f94779e00908f3e686eab508878ebb390ba6e604d3a284c00e8d0487b"
+
+[[package]]
 name = "openpty"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -135,23 +119,17 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "sfml"
-version = "0.15.1"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "513d5e9ff2e56ae75c7ab943fbd15880fd685230d9ddc0abb853c1374ee66129"
+checksum = "cc90f712d9a93d8db54e53281dbb6dbb29e443abcc83e185df4bbe60ba6e8311"
 dependencies = [
  "bitflags",
- "csfml-audio-sys",
- "csfml-graphics-sys",
- "csfml-system-sys",
- "csfml-window-sys",
+ "cc",
+ "link-cplusplus",
+ "num-traits",
+ "once_cell",
  "widestring",
 ]
-
-[[package]]
-name = "sfml-build"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f83a1ad7f7c79c9273019b2abfacbd4fa7150d23caca8cae586f0f1ea43b151"
 
 [[package]]
 name = "static_assertions"
@@ -178,6 +156,6 @@ dependencies = [
 
 [[package]]
 name = "widestring"
-version = "0.4.3"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c168940144dd21fd8046987c16a46a33d5fc84eec29ef9dcddc2ac9e31526b7c"
+checksum = "653f141f39ec16bba3c5abe400a0c60da7468261cc2cbf36805022876bc721a8"

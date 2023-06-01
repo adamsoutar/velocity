@@ -127,7 +127,8 @@ impl MacOsShellLayer {
         // We no longer need this pointer to our slave fd (it's pointed to at 0, 1 and 2)
         close(pty_slave).unwrap();
 
-        let shell_path = CString::new("/Users/adam/Projects/ass/output").unwrap();
+        // let shell_path = CString::new("/Users/adam/Projects/ass/output").unwrap();
+        let shell_path = CString::new("/bin/zsh").unwrap();
         // TODO: Check if the rest of the env from the child process is inherited.
         let env_vars = [
             // This is very important, otherwise the shell won't talk to us properly
