@@ -38,3 +38,12 @@ enum EscapeCode {
     BellTone(Frequency)
 }
 ```
+
+Couple of notes on escape code notes:
+
+It *seeeeeems* like most if not all control codes end in a letter.
+Unless they're something like `ESC 7` or `ESC 8`, but they can be detected
+because they've got the space in them. NOTE: `ESC 7` and `ESC 8` are not
+standardised. They're technically "private codes". But that doesn't mean we
+shouldn't be prepared for them, because a program could chuck them out at
+any point.

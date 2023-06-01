@@ -1,4 +1,5 @@
 use crate::constants::{special_characters::*, *};
+use crate::escape_sequence::parser::{EscapeSequenceParser, SequenceFinished};
 use crate::shell_layer::{get_shell_layer, ShellLayer};
 
 pub struct TtySize {
@@ -34,6 +35,7 @@ pub struct TtyState {
     // going to be when it starts
     remaining_unicode_scalar_bytes: u8,
     insertion_mode: InsertionMode,
+    escape_sequence_parser: EscapeSequenceParser,
 }
 
 impl TtyState {
@@ -84,43 +86,23 @@ impl TtyState {
     }
 
     fn escape_insert_char(&mut self, c: char) {
-        match c {
-            // Most control sequences end with a lowercase letter,
-            // so this is probably a fine-ish way to ignore codes for now
-            'a' => {}
-            'b' => {}
-            'c' => {}
-            'd' => {}
-            'e' => {}
-            'f' => {}
-            'g' => {}
-            'h' => {}
-            'i' => {}
-            'j' => {}
-            'k' => {}
-            'l' => {}
-            'm' => {}
-            'n' => {}
-            'o' => {}
-            'p' => {}
-            'q' => {}
-            'r' => {}
-            's' => {}
-            't' => {}
-            'u' => {}
-            'v' => {}
-            'w' => {}
-            'x' => {}
-            'y' => {}
-            'z' => {}
-            _ => return,
+        self.insertion_mode = match self.escape_sequence_parser.parse_character(c) {
+            // This sequence isn't over yet
+            SequenceFinished::No => InsertionMode::EscapeSequence,
+            // It's done, back to normals
+            SequenceFinished::Yes(parse_result) => {
+                println!("Parsed: {:?}", parse_result);
+                InsertionMode::Standard
+            }
         }
-        self.insertion_mode = InsertionMode::Standard
     }
 
     fn standard_insert_char(&mut self, c: char) {
+        // TODO: Also support the unicode shortcuts like the CSI character.
+        //   Just spawn a parser and immediately pretend you saw the next char.
         if c == ESCAPE {
             // That's the start of an escape sequence
+            self.escape_sequence_parser = EscapeSequenceParser::new();
             self.insertion_mode = InsertionMode::EscapeSequence;
             return;
         }
@@ -131,7 +113,8 @@ impl TtyState {
         }
 
         let mut line_buffer = &mut self.scrollback_buffer[cursor_line];
-        if c == NEWLINE || self.cursor_pos.x >= 80 {
+        // TODO: This (the cursor_pos.x check) is wrong. It doesn't do stomp
+        if c == NEWLINE || self.cursor_pos.x >= self.size.cols {
             self.cursor_pos.x = 0;
             self.cursor_pos.y += 1;
 
@@ -188,6 +171,7 @@ impl TtyState {
             current_unicode_scalar: vec![],
             remaining_unicode_scalar_bytes: 0,
             insertion_mode: InsertionMode::Standard,
+            escape_sequence_parser: EscapeSequenceParser::new(),
         }
     }
 }

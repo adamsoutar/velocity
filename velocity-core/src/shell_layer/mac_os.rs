@@ -28,6 +28,9 @@ pub struct MacOsShellLayer {
 
 impl ShellLayer for MacOsShellLayer {
     fn read(&mut self, buffer: &mut [u8; FD_BUFFER_SIZE_BYTES], written: &mut usize) {
+        // TODO: We can also poll() for POLLNVAL to check that the file descriptor is still open.
+        //   We need to do this to check if the child process died (eg. shell did 'exit')
+        //   https://stackoverflow.com/a/12340730/7674702
         let poll_fd = PollFd::new(self.pty_result.master, PollFlags::POLLIN);
 
         if self.fd_drained {
@@ -124,7 +127,7 @@ impl MacOsShellLayer {
         // We no longer need this pointer to our slave fd (it's pointed to at 0, 1 and 2)
         close(pty_slave).unwrap();
 
-        let shell_path = CString::new("/bin/zsh").unwrap();
+        let shell_path = CString::new("/Users/adam/Projects/ass/output").unwrap();
         // TODO: Check if the rest of the env from the child process is inherited.
         let env_vars = [
             // This is very important, otherwise the shell won't talk to us properly

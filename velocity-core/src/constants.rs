@@ -29,4 +29,11 @@ pub mod special_characters {
     // Pushes to the start of the line like a typewriter. Used for progress bars
     pub const CARRIAGE_RETURN: char = '\u{000D}';
     pub const DELETE: char = '\u{007F}';
+    pub const CONTROL_SEQUENCE_INTRODUCER: char = '[';
+    pub const CONTROL_SEQUENCE_INTRODUCER_SHORTCUT: char = '\u{009B}';
+    pub const DEVICE_CONTROL_STRING: char = 'P';
+    pub const DEVICE_CONTROL_STRING_SHORTCUT: char = '\u{0090}';
+    pub const OPERATING_SYSTEM_COMMAND: char = ']';
+    pub const OPERATING_SYSTEM_COMMAND_SHORTCUT: char = '\u{009D}';
+    pub const SPACE: char = ' ';
 }
