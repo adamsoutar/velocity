@@ -1,6 +1,6 @@
 use crate::constants::special_characters::*;
 
-use super::sequence::{EscapeSequence, EscapeSequence::*, TerminalColour, TextColourArgs};
+use super::sequence::{EscapeSequence, SGRCode};
 
 #[derive(PartialEq)]
 enum SequenceType {
@@ -85,47 +85,18 @@ impl EscapeSequenceParser {
     }
 
     fn parse_end_of_text_style_csi(&self) -> Option<EscapeSequence> {
-        if self.numeric_args.len() == 0 {
-            // We don't understand this. You should tell us something about your desired
-            // text style if you send this code.
-            return None;
-        }
+        let mut sgr_codes: Vec<SGRCode> = vec![];
 
-        let mode_part = match self.numeric_args[0] {
-            0 => ResetAllTextStyles,
-            1 => EnableBoldText,
-            22 => DisableBoldText, // TODO: DisableFaintText?
-            2 => EnableFaintText,
-            3 => EnableItalicText,
-            23 => DisableItalicText,
-            4 => EnableUnderlinedText,
-            24 => DisableUnderlinedText,
-            5 => EnableBlinkingText,
-            25 => DisableBlinkingText,
-            7 => EnableReverseVideoMode,
-            27 => DisableReverseVideoMode,
-            8 => EnableInvisibleText,
-            28 => DisableInvisibleText,
-            9 => EnableStrikethroughText,
-            29 => DisableStrikethroughText,
-            _ => {
-                println!("Unsupported text style '{}'", self.numeric_args[0]);
-                ResetAllTextStyles
-                // return None;
+        for num in &self.numeric_args {
+            let maybe_sgr = num::FromPrimitive::from_usize(*num);
+            if maybe_sgr.is_none() {
+                println!("Unknown SGR code {}", num);
+            } else {
+                sgr_codes.push(maybe_sgr.unwrap());
             }
-        };
-
-        if self.numeric_args.len() == 1 {
-            Some(mode_part)
-        } else {
-            Some(SetTextColour(TextColourArgs {
-                initial_sub_sequence: Box::new(mode_part),
-                colour_sequence: self.numeric_args[1..]
-                    .iter()
-                    .map(num_to_terminal_colour)
-                    .collect(),
-            }))
         }
+
+        Some(EscapeSequence::SelectGraphicRendition(sgr_codes))
     }
 
     pub fn new() -> EscapeSequenceParser {
@@ -133,35 +104,6 @@ impl EscapeSequenceParser {
             sequence_type: SequenceType::Undetermined,
             numeric_args: vec![],
             current_token: String::new(),
-        }
-    }
-}
-
-fn num_to_terminal_colour(n: &usize) -> TerminalColour {
-    // TODO: Neater way to do this
-    match *n {
-        30 => TerminalColour::BlackForeground,
-        40 => TerminalColour::BlackBackground,
-        31 => TerminalColour::RedForeground,
-        41 => TerminalColour::RedBackground,
-        32 => TerminalColour::GreenForeground,
-        42 => TerminalColour::GreenBackground,
-        33 => TerminalColour::YellowForeground,
-        43 => TerminalColour::YellowBackground,
-        34 => TerminalColour::BlueForeground,
-        44 => TerminalColour::BlueBackground,
-        35 => TerminalColour::MagentaForeground,
-        45 => TerminalColour::MagentaBackground,
-        36 => TerminalColour::CyanForeground,
-        46 => TerminalColour::CyanBackground,
-        37 => TerminalColour::WhiteForeground,
-        47 => TerminalColour::WhiteBackground,
-        39 => TerminalColour::DefaultForeground,
-        49 => TerminalColour::DefaultBackground,
-        0 => TerminalColour::SpecialReset,
-        _ => {
-            println!("Unsupported TerminalColour code '{}'", n);
-            TerminalColour::DefaultForeground
         }
     }
 }

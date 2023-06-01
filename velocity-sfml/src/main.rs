@@ -1,4 +1,5 @@
 use colours::terminal_colour_to_sfml_colour;
+use colours::DefaultColourVersion;
 use velocity_core::tty::TtyState;
 
 use sfml::graphics::*;
@@ -100,7 +101,10 @@ fn main() {
                 }
                 char_text.set_style(sfml_text_style);
 
-                char_text.set_fill_color(terminal_colour_to_sfml_colour(letter.style.foreground));
+                char_text.set_fill_color(terminal_colour_to_sfml_colour(
+                    letter.style.foreground,
+                    DefaultColourVersion::Foreground,
+                ));
 
                 window.draw(&char_text);
             }
