@@ -136,6 +136,7 @@ impl MacOsShellLayer {
             CString::new("TERM=xterm-16color").unwrap(),
             // This is just showing off :)
             CString::new("TERM_PROGRAM=velocity").unwrap(),
+            // CString::new("TERM_PROGRAM=iTerm.app").unwrap(),
         ];
         let mut c_env_vars: Vec<*const i8> = env_vars.iter().map(|s| s.as_ptr()).collect();
         c_env_vars.push(ptr::null());

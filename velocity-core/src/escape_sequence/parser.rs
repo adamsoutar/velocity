@@ -29,7 +29,6 @@ pub struct EscapeSequenceParser {
 impl EscapeSequenceParser {
     // Returns whether the sequence is over
     pub fn parse_character(&mut self, c: char) -> SequenceFinished {
-        println!("Parsing '{}'", c);
         if self.sequence_type == SequenceType::Undetermined {
             self.sequence_type = match c {
                 CONTROL_SEQUENCE_INTRODUCER => SequenceType::CSI,
@@ -77,7 +76,6 @@ impl EscapeSequenceParser {
     }
 
     fn parse_end_of_csi(&self, c: char) -> Option<EscapeSequence> {
-        // TODO: Actually implement this and do different things based on what we've parsed
         if c == 'm' {
             return self.parse_end_of_text_style_csi();
         }
@@ -112,7 +110,8 @@ impl EscapeSequenceParser {
             29 => DisableStrikethroughText,
             _ => {
                 println!("Unsupported text style '{}'", self.numeric_args[0]);
-                return None;
+                ResetAllTextStyles
+                // return None;
             }
         };
 

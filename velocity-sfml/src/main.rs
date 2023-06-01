@@ -1,8 +1,11 @@
+use colours::terminal_colour_to_sfml_colour;
 use velocity_core::tty::TtyState;
 
 use sfml::graphics::*;
 use sfml::system::*;
 use sfml::window::*;
+
+mod colours;
 
 const FONT_SIZE: u32 = 24;
 
@@ -57,6 +60,8 @@ fn main() {
             }
         }
 
+        // TODO: If the text has a certain background colour, and then the screen is cleared,
+        //   we should change the whole background colour.
         window.clear(Color::BLACK);
 
         tty.read();
@@ -70,14 +75,40 @@ fn main() {
 
             for l in 0..tty.scrollback_buffer[row_id].len() {
                 let letter = tty.scrollback_buffer[row_id][l];
-                let mut char_text = Text::new(&letter.to_string(), &font, FONT_SIZE);
+                if letter.style.invisible {
+                    continue;
+                }
+
+                let mut char_text = Text::new(&letter.char.to_string(), &font, FONT_SIZE);
                 char_text
                     .set_position(Vector2f::new(l as f32 * font_width, i as f32 * font_height));
+
+                // The SFML TextStyle system is a bitmask.
+                let mut sfml_text_style: sfml::graphics::TextStyle =
+                    sfml::graphics::TextStyle::REGULAR;
+                if letter.style.bold {
+                    sfml_text_style |= sfml::graphics::TextStyle::BOLD
+                }
+                if letter.style.italic {
+                    sfml_text_style |= sfml::graphics::TextStyle::ITALIC
+                }
+                if letter.style.strikethrough {
+                    sfml_text_style |= sfml::graphics::TextStyle::STRIKETHROUGH
+                }
+                if letter.style.underlined {
+                    sfml_text_style |= sfml::graphics::TextStyle::UNDERLINED
+                }
+                char_text.set_style(sfml_text_style);
+
+                char_text.set_fill_color(terminal_colour_to_sfml_colour(letter.style.foreground));
+
                 window.draw(&char_text);
             }
         }
 
         // Cursor
+        // TODO: Does text foreground colour colour the cursor?
+        //   If it does, we can make TtyState's text_style public
         let mut cursor_block = RectangleShape::with_size(Vector2f::new(font_width, font_height));
         cursor_block.set_fill_color(Color::WHITE);
         cursor_block.set_position(Vector2f::new(

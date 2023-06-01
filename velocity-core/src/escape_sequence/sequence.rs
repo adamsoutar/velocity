@@ -33,30 +33,30 @@ pub struct TextColourArgs {
     pub colour_sequence: Vec<TerminalColour>,
 }
 
-#[derive(Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum TerminalColour {
     // TODO: In future, we can define a special one like
     // RGBColour(RGBColourArgs) which can hold any colour
     // To start with, these are the 16-bit mode colours
-    BlackForeground,   // 30
-    BlackBackground,   // 40
-    RedForeground,     // 31
-    RedBackground,     // 41
-    GreenForeground,   // 32
-    GreenBackground,   // 42
-    YellowForeground,  // 33
-    YellowBackground,  // 43
-    BlueForeground,    // 34
-    BlueBackground,    // 44
-    MagentaForeground, // 35
-    MagentaBackground, // 45
-    CyanForeground,    // 36
-    CyanBackground,    // 46
-    WhiteForeground,   // 37
-    WhiteBackground,   // 47
-    DefaultForeground, // 39
-    DefaultBackground, // 49
+    BlackForeground = 30,
+    BlackBackground = 40,
+    RedForeground = 31,
+    RedBackground = 41,
+    GreenForeground = 32,
+    GreenBackground = 42,
+    YellowForeground = 33,
+    YellowBackground = 43,
+    BlueForeground = 34,
+    BlueBackground = 44,
+    MagentaForeground = 35,
+    MagentaBackground = 45,
+    CyanForeground = 36,
+    CyanBackground = 46,
+    WhiteForeground = 37,
+    WhiteBackground = 47,
+    DefaultForeground = 39,
+    DefaultBackground = 49,
     // NOTE: This "colour" acts like EscapeSequence::ResetAllTextStyles
     //   It turns off bold, etc. when used in a colour sequence.
-    SpecialReset, // 0
+    SpecialReset = 0,
 }

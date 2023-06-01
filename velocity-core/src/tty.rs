@@ -1,6 +1,8 @@
 use crate::constants::{special_characters::*, *};
 use crate::escape_sequence::parser::{EscapeSequenceParser, SequenceFinished};
 use crate::shell_layer::{get_shell_layer, ShellLayer};
+use crate::text_styles::decorated_char::DecoratedChar;
+use crate::text_styles::text_style::TextStyle;
 
 pub struct TtySize {
     pub cols: usize,
@@ -24,7 +26,7 @@ pub struct TtyState {
     pub size: TtySize,
     pub cursor_pos: CursorPosition,
     pub scrollback_start: usize,
-    pub scrollback_buffer: Vec<Vec<char>>,
+    pub scrollback_buffer: Vec<Vec<DecoratedChar>>,
     read_buffer: [u8; FD_BUFFER_SIZE_BYTES],
     read_buffer_length: usize,
     shell_layer: Box<dyn ShellLayer>,
@@ -36,6 +38,7 @@ pub struct TtyState {
     remaining_unicode_scalar_bytes: u8,
     insertion_mode: InsertionMode,
     escape_sequence_parser: EscapeSequenceParser,
+    text_style: TextStyle,
 }
 
 impl TtyState {
@@ -92,6 +95,9 @@ impl TtyState {
             // It's done, back to normals
             SequenceFinished::Yes(parse_result) => {
                 println!("Parsed: {:?}", parse_result);
+                if let Some(sequence) = parse_result {
+                    self.text_style.apply_escape_sequence(&sequence);
+                }
                 InsertionMode::Standard
             }
         }
@@ -135,7 +141,8 @@ impl TtyState {
             line_buffer.pop();
             self.cursor_pos.x -= 1;
         } else {
-            line_buffer.insert(self.cursor_pos.x, c);
+            let d_c = DecoratedChar::new(c, self.text_style);
+            line_buffer.insert(self.cursor_pos.x, d_c);
             self.cursor_pos.x += 1;
         }
     }
@@ -172,6 +179,7 @@ impl TtyState {
             remaining_unicode_scalar_bytes: 0,
             insertion_mode: InsertionMode::Standard,
             escape_sequence_parser: EscapeSequenceParser::new(),
+            text_style: TextStyle::new(),
         }
     }
 }
