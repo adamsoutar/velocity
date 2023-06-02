@@ -1,5 +1,7 @@
 #[derive(Debug)]
 pub enum EscapeSequence {
+    // Moves the cursor to x, y (1-indexed). x and y default to 1 if not present
+    SetCursorPosition(SetCursorPositionArgs), // ESC[...H
     // Sets the TextStyle with which we render things
     SelectGraphicRendition(Vec<SGRCode>), // ESC[...m
     // Clears the line the cursor is on in various ways
@@ -11,6 +13,12 @@ pub enum EscapeSequence {
     PrivateEnableBracketedPasteMode, // ESC[?2004h
     // Turns the above off (obviously)
     PrivateDisableBracketedPasteMode, // ESC[?2004l
+}
+
+#[derive(Debug)]
+pub struct SetCursorPositionArgs {
+    pub x: usize,
+    pub y: usize,
 }
 
 // NOTE: Cursor position does not change (outside of DOS)

@@ -1,6 +1,6 @@
 use crate::constants::special_characters::*;
 
-use super::sequence::{EscapeSequence, SGRCode};
+use super::sequence::{EscapeSequence, SGRCode, SetCursorPositionArgs};
 
 #[derive(PartialEq, Debug)]
 enum SequenceType {
@@ -81,14 +81,48 @@ impl EscapeSequenceParser {
         }
 
         match c {
-            'm' => self.parse_csi_select_graphic_rendition(),
-            'K' => self.parse_csi_erase_in_line(),
+            'H' => self.parse_csi_set_cursor_position(),
             'J' => self.parse_csi_erase_in_display(),
+            'K' => self.parse_csi_erase_in_line(),
+            'm' => self.parse_csi_select_graphic_rendition(),
             _ => {
                 println!("Ignoring CSI due to unknown final byte '{}'", c);
                 None
             }
         }
+    }
+
+    fn parse_csi_set_cursor_position(&mut self) -> Option<EscapeSequence> {
+        let mut x = 1;
+        let mut y = 1;
+
+        if self.csi_parameter_chars.len() > 0 {
+            let param_string: String = self.csi_parameter_chars.clone().into_iter().collect();
+            let split: Vec<&str> = param_string.split(';').collect();
+            // There's at least an x argument because param chars > 0
+            x = split[0].parse::<usize>().unwrap_or_else(|err| {
+                println!(
+                    "Error parsing SetCursorPosition x arg '{}', defaulting to 1\n{:?}",
+                    split[0], err
+                );
+                1
+            });
+            // If there's still more to go, they're supplying y as well
+            if split.len() > 1 {
+                y = split[1].parse::<usize>().unwrap_or_else(|err| {
+                    println!(
+                        "Error parsing SetCursorPosition y arg '{}', defaulting to 1\n{:?}",
+                        split[0], err
+                    );
+                    1
+                });
+            }
+        }
+
+        Some(EscapeSequence::SetCursorPosition(SetCursorPositionArgs {
+            x,
+            y,
+        }))
     }
 
     fn parse_csi_private_sequence_final_byte(&mut self, c: char) -> Option<EscapeSequence> {

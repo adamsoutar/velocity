@@ -2,7 +2,9 @@ use std::collections::VecDeque;
 
 use crate::constants::{special_characters::*, *};
 use crate::escape_sequence::parser::{EscapeSequenceParser, SequenceFinished};
-use crate::escape_sequence::sequence::{EraseInDisplayType, EraseInLineType, EscapeSequence};
+use crate::escape_sequence::sequence::{
+    EraseInDisplayType, EraseInLineType, EscapeSequence, SetCursorPositionArgs,
+};
 use crate::shell_layer::{get_shell_layer, ShellLayer};
 use crate::text_styles::decorated_char::DecoratedChar;
 use crate::text_styles::text_style::TextStyle;
@@ -57,9 +59,10 @@ pub struct TtyState {
 impl TtyState {
     fn apply_escape_sequence(&mut self, seq: &EscapeSequence) {
         match seq {
-            EscapeSequence::SelectGraphicRendition(_) => self.text_style.apply_escape_sequence(seq),
-            EscapeSequence::EraseInLine(e) => self.apply_sequence_erase_in_line(e),
+            EscapeSequence::SetCursorPosition(p) => self.apply_sequence_set_cursor_position(p),
             EscapeSequence::EraseInDisplay(e) => self.apply_sequence_erase_in_display(e),
+            EscapeSequence::EraseInLine(e) => self.apply_sequence_erase_in_line(e),
+            EscapeSequence::SelectGraphicRendition(_) => self.text_style.apply_escape_sequence(seq),
             EscapeSequence::PrivateEnableBracketedPasteMode => self.bracketed_paste_mode = true,
             EscapeSequence::PrivateDisableBracketedPasteMode => self.bracketed_paste_mode = false,
             // As we go through the process of implementing these, we'll keep adding new
@@ -67,6 +70,12 @@ impl TtyState {
             #[allow(unreachable_patterns)]
             _ => println!("Unhandled escape sequence {:?}", seq),
         }
+    }
+
+    fn apply_sequence_set_cursor_position(&mut self, args: &SetCursorPositionArgs) {
+        // These args are 1-indexed, but our cursor is 0-indexed.
+        self.cursor_pos.x = args.x - 1;
+        self.cursor_pos.y = args.y - 1;
     }
 
     fn apply_sequence_erase_in_display(&mut self, erase_type: &EraseInDisplayType) {
@@ -122,6 +131,11 @@ impl TtyState {
         {
             let diff = cursor_x as isize - line.len() as isize;
             if diff > 0 {
+                println!(
+                    "We've been asked to EraseToStartOfLine at cursor {}, line length: {}",
+                    cursor_x,
+                    line.len()
+                );
                 // This is just an efficient way to truncate() the other side.
                 // VecDeque doesn't have truncate_front
                 drop(line.drain(0..cursor_x))
@@ -129,7 +143,16 @@ impl TtyState {
         }
     }
 
+    fn ensure_backing_store_for_current_line(&mut self) {
+        let cursor_line = self.scrollback_start + self.cursor_pos.y;
+        while self.scrollback_buffer.len() <= cursor_line {
+            self.scrollback_buffer
+                .push_back(VecDeque::with_capacity(self.size.cols));
+        }
+    }
+
     fn get_current_line_ref(&mut self) -> &mut LineType {
+        self.ensure_backing_store_for_current_line();
         &mut self.scrollback_buffer[self.scrollback_start + self.cursor_pos.y]
     }
 
@@ -175,7 +198,7 @@ impl TtyState {
         //   operates purely on bytes before Unicode parsing. But most of the classic ones
         //   pre-date UTF-8 and therefore are defined in terms of ASCII.
         if let Some(parsed_char) = self.parse_partial_unicode(next_byte) {
-            // println!("Char: {:?} ({})", parsed_char, parsed_char as usize);
+            println!("Char: {:?} ({})", parsed_char, parsed_char as usize);
             match self.insertion_mode {
                 InsertionMode::Standard => self.standard_insert_char(parsed_char),
                 InsertionMode::EscapeSequence => self.escape_insert_char(parsed_char),
@@ -208,11 +231,7 @@ impl TtyState {
             return;
         }
 
-        let cursor_line = self.scrollback_start + self.cursor_pos.y;
-        while self.scrollback_buffer.len() <= cursor_line {
-            self.scrollback_buffer
-                .push_back(VecDeque::with_capacity(self.size.cols));
-        }
+        self.ensure_backing_store_for_current_line();
 
         match c {
             BACKSPACE | CARRIAGE_RETURN | HORIZONTAL_TAB | BELL | FORMFEED => {
@@ -224,6 +243,7 @@ impl TtyState {
 
         // From now on, we know it's a printable character. So we need to handle things like spacing
         // and wrapping
+        let cursor_line = self.scrollback_start + self.cursor_pos.y;
         let mut line_buffer = &mut self.scrollback_buffer[cursor_line];
 
         if c == NEWLINE || (self.cursor_pos.x >= self.size.cols - 1 && self.stomp) {
