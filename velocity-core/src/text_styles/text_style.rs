@@ -93,7 +93,7 @@ impl TextStyle {
             SGRCode::ResetItalicText => self.italic = false,
             SGRCode::ResetUnderlinedText => self.underlined = false,
             SGRCode::ResetBlinkingText => self.blinking = BlinkingMode::None,
-            SGRCode::ResetInverseVideoMode => self.reverse_video = false,
+            SGRCode::ResetReverseVideoMode => self.reverse_video = false,
             SGRCode::ResetInvisibleText => self.invisible = false,
             SGRCode::ResetStrikethroughText => self.strikethrough = false,
 

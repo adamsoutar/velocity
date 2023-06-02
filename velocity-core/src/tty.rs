@@ -1,5 +1,8 @@
+use std::collections::VecDeque;
+
 use crate::constants::{special_characters::*, *};
 use crate::escape_sequence::parser::{EscapeSequenceParser, SequenceFinished};
+use crate::escape_sequence::sequence::{EraseInLineType, EscapeSequence};
 use crate::shell_layer::{get_shell_layer, ShellLayer};
 use crate::text_styles::decorated_char::DecoratedChar;
 use crate::text_styles::text_style::TextStyle;
@@ -26,7 +29,7 @@ pub struct TtyState {
     pub size: TtySize,
     pub cursor_pos: CursorPosition,
     pub scrollback_start: usize,
-    pub scrollback_buffer: Vec<Vec<DecoratedChar>>,
+    pub scrollback_buffer: VecDeque<VecDeque<DecoratedChar>>,
     read_buffer: [u8; FD_BUFFER_SIZE_BYTES],
     read_buffer_length: usize,
     shell_layer: Box<dyn ShellLayer>,
@@ -42,6 +45,42 @@ pub struct TtyState {
 }
 
 impl TtyState {
+    fn apply_escape_sequence(&mut self, seq: &EscapeSequence) {
+        match seq {
+            EscapeSequence::EraseInLine(e) => self.apply_sequence_erase_in_line(e),
+            EscapeSequence::SelectGraphicRendition(_) => self.text_style.apply_escape_sequence(seq),
+            _ => println!("Unhandled escape sequence {:?}", seq),
+        }
+    }
+
+    fn apply_sequence_erase_in_line(&mut self, erase_type: &EraseInLineType) {
+        let cursor_x = self.cursor_pos.x;
+        let line = self.get_current_line_ref();
+
+        if *erase_type == EraseInLineType::ToEndOfLine || *erase_type == EraseInLineType::EntireLine
+        {
+            let diff = line.len() as isize - cursor_x as isize;
+            if diff > 0 {
+                line.truncate(diff as usize)
+            }
+        }
+
+        if *erase_type == EraseInLineType::ToStartOfLine
+            || *erase_type == EraseInLineType::EntireLine
+        {
+            let diff = cursor_x as isize - line.len() as isize;
+            if diff > 0 {
+                // This is just an efficient way to truncate() the other side.
+                // VecDeque doesn't have truncate_front
+                drop(line.drain(0..cursor_x))
+            }
+        }
+    }
+
+    fn get_current_line_ref(&mut self) -> &mut VecDeque<DecoratedChar> {
+        &mut self.scrollback_buffer[self.scrollback_start + self.cursor_pos.y]
+    }
+
     // Returns a character *if* it's finished
     fn parse_partial_unicode(&mut self, b: u8) -> Option<char> {
         if self.remaining_unicode_scalar_bytes == 0 {
@@ -80,7 +119,11 @@ impl TtyState {
     }
 
     fn insert_byte(&mut self, next_byte: u8) {
+        // TODO: There's a very light chance that someone would want a control sequence that
+        //   operates purely on bytes before Unicode parsing. But most of the classic ones
+        //   pre-date UTF-8 and therefore are defined in terms of ASCII.
         if let Some(parsed_char) = self.parse_partial_unicode(next_byte) {
+            println!("Char: {:?} ({})", parsed_char, parsed_char as usize);
             match self.insertion_mode {
                 InsertionMode::Standard => self.standard_insert_char(parsed_char),
                 InsertionMode::EscapeSequence => self.escape_insert_char(parsed_char),
@@ -96,7 +139,7 @@ impl TtyState {
             SequenceFinished::Yes(parse_result) => {
                 println!("Parsed: {:?}", parse_result);
                 if let Some(sequence) = parse_result {
-                    self.text_style.apply_escape_sequence(&sequence);
+                    self.apply_escape_sequence(&sequence);
                 }
                 InsertionMode::Standard
             }
@@ -115,7 +158,8 @@ impl TtyState {
 
         let cursor_line = self.scrollback_start + self.cursor_pos.y;
         while self.scrollback_buffer.len() <= cursor_line {
-            self.scrollback_buffer.push(vec![]);
+            self.scrollback_buffer
+                .push_back(VecDeque::with_capacity(self.size.cols));
         }
 
         let mut line_buffer = &mut self.scrollback_buffer[cursor_line];
@@ -130,7 +174,8 @@ impl TtyState {
                 self.scrollback_start += 1;
             }
 
-            self.scrollback_buffer.push(vec![]);
+            self.scrollback_buffer
+                .push_back(VecDeque::with_capacity(self.size.cols));
             line_buffer = &mut self.scrollback_buffer[self.scrollback_start + self.cursor_pos.y];
             if c == '\n' {
                 return;
@@ -138,13 +183,23 @@ impl TtyState {
         }
 
         if c == BACKSPACE {
-            line_buffer.pop();
+            line_buffer.pop_back();
             self.cursor_pos.x -= 1;
-        } else {
-            let d_c = DecoratedChar::new(c, self.text_style);
-            line_buffer.insert(self.cursor_pos.x, d_c);
-            self.cursor_pos.x += 1;
+            return;
         }
+
+        if c == CARRIAGE_RETURN {
+            self.cursor_pos.x = 0;
+            return;
+        }
+
+        let d_c = DecoratedChar::new(c, self.text_style);
+        // line_buffer.insert(self.cursor_pos.x, d_c);
+        while line_buffer.len() <= self.cursor_pos.x {
+            line_buffer.push_back(DecoratedChar::new(' ', self.text_style));
+        }
+        line_buffer[self.cursor_pos.x] = d_c;
+        self.cursor_pos.x += 1;
     }
 
     pub fn read(&mut self) {
@@ -171,7 +226,7 @@ impl TtyState {
             size,
             cursor_pos: CursorPosition { x: 0, y: 0 },
             scrollback_start: 0,
-            scrollback_buffer: vec![],
+            scrollback_buffer: VecDeque::with_capacity(rows),
             read_buffer: [0; FD_BUFFER_SIZE_BYTES],
             read_buffer_length: 0,
             shell_layer,

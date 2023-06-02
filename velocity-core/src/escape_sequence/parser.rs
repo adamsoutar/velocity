@@ -2,7 +2,7 @@ use crate::constants::special_characters::*;
 
 use super::sequence::{EscapeSequence, SGRCode};
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 enum SequenceType {
     Undetermined, // Don't know yet (just ESC so far)
     CSI,          // Control Sequence Introducer (ESC followed by "[")
@@ -22,13 +22,15 @@ pub enum SequenceFinished {
 
 pub struct EscapeSequenceParser {
     sequence_type: SequenceType,
-    numeric_args: Vec<usize>,
-    current_token: String,
+    // These are based on the ECMA-48 Standard § 5.4
+    csi_parameter_chars: Vec<char>,
+    csi_intermediate_chars: Vec<char>,
 }
 
 impl EscapeSequenceParser {
     // Returns whether the sequence is over
     pub fn parse_character(&mut self, c: char) -> SequenceFinished {
+        // println!("Parsing: {}", c);
         if self.sequence_type == SequenceType::Undetermined {
             self.sequence_type = match c {
                 CONTROL_SEQUENCE_INTRODUCER => SequenceType::CSI,
@@ -47,70 +49,97 @@ impl EscapeSequenceParser {
         match self.sequence_type {
             SequenceType::CSI => self.parse_csi_character(c),
             // We haven't implement parsing for anything else yet
-            _ => SequenceFinished::Yes(None),
+            _ => {
+                println!(
+                    "Bailing from unimplemented escape SequenceType {:?}",
+                    self.sequence_type
+                );
+                SequenceFinished::Yes(None)
+            }
         }
     }
 
     fn parse_csi_character(&mut self, c: char) -> SequenceFinished {
-        if is_part_of_token(c) {
-            self.current_token.push(c);
-        } else {
-            let maybe_token_as_num: Result<usize, _> = str::parse(&self.current_token[..]);
-            self.current_token = String::new();
-
-            if maybe_token_as_num.is_err() {
-                // They gave us a nonsense number, give up
-                return SequenceFinished::Yes(None);
-            } else {
-                self.numeric_args.push(maybe_token_as_num.unwrap())
-            }
-
-            // If it's ;, we'll fall through to the No
-            if c != ';' {
-                let final_sequence = self.parse_end_of_csi(c);
-                return SequenceFinished::Yes(final_sequence);
+        match c as usize {
+            0x30..=0x3F => self.csi_parameter_chars.push(c),
+            0x20..=0x2F => self.csi_intermediate_chars.push(c),
+            0x40..=0x7E => return SequenceFinished::Yes(self.parse_csi_final_byte(c)),
+            _ => {
+                println!("Ignored unknown control sequence character '{}'", c);
             }
         }
 
         SequenceFinished::No
     }
 
-    fn parse_end_of_csi(&self, c: char) -> Option<EscapeSequence> {
-        if c == 'm' {
-            return self.parse_end_of_text_style_csi();
-        }
-
-        println!("Unsupported csi ending character '{}'", c);
-        return None;
-    }
-
-    fn parse_end_of_text_style_csi(&self) -> Option<EscapeSequence> {
-        let mut sgr_codes: Vec<SGRCode> = vec![];
-
-        for num in &self.numeric_args {
-            let maybe_sgr = num::FromPrimitive::from_usize(*num);
-            if maybe_sgr.is_none() {
-                println!("Unknown SGR code {}", num);
-            } else {
-                sgr_codes.push(maybe_sgr.unwrap());
+    fn parse_csi_final_byte(&mut self, c: char) -> Option<EscapeSequence> {
+        match c {
+            'm' => self.parse_csi_select_graphic_rendition(),
+            'K' => self.parse_csi_erase_in_line(),
+            _ => {
+                println!("Ignoring CSI due to unknown final byte '{}'", c);
+                None
             }
         }
+    }
 
-        Some(EscapeSequence::SelectGraphicRendition(sgr_codes))
+    fn parse_csi_erase_in_line(&mut self) -> Option<EscapeSequence> {
+        // This is the default value if there are no parameter bytes
+        let mut erase_type = 0;
+
+        if self.csi_parameter_chars.len() == 1 {
+            erase_type = self.csi_parameter_chars[0]
+                .to_string()
+                .parse::<usize>()
+                .unwrap_or_else(|err| {
+                    println!(
+                        "Error parsing CSI erase type '{}', returning Noop\n{:?}",
+                        self.csi_parameter_chars[0], err
+                    );
+                    999
+                });
+        }
+
+        let maybe_erase_type_enum = num::FromPrimitive::from_usize(erase_type);
+        if maybe_erase_type_enum.is_none() {
+            println!("Unknown CSI erase type '{}'", erase_type);
+            return None;
+        } else {
+            return Some(EscapeSequence::EraseInLine(maybe_erase_type_enum.unwrap()));
+        }
+    }
+
+    fn parse_csi_select_graphic_rendition(&mut self) -> Option<EscapeSequence> {
+        let param_string: String = self.csi_parameter_chars.clone().into_iter().collect();
+        let params: Vec<SGRCode> = param_string
+            .split(';')
+            .map(|sgr_code_str| {
+                sgr_code_str.parse::<usize>().unwrap_or_else(|err| {
+                    println!(
+                        "Error parsing CSI SGR number '{}', transforming to Noop\n{:?}",
+                        sgr_code_str, err
+                    );
+                    SGRCode::Noop as usize
+                })
+            })
+            .map(|sgr_code_num| {
+                num::FromPrimitive::from_usize(sgr_code_num).unwrap_or_else(|| {
+                    println!(
+                        "Transforming unknown SGR CSI number '{}' to Noop",
+                        sgr_code_num,
+                    );
+                    SGRCode::Noop
+                })
+            })
+            .collect();
+        Some(EscapeSequence::SelectGraphicRendition(params))
     }
 
     pub fn new() -> EscapeSequenceParser {
         EscapeSequenceParser {
             sequence_type: SequenceType::Undetermined,
-            numeric_args: vec![],
-            current_token: String::new(),
+            csi_parameter_chars: vec![],
+            csi_intermediate_chars: vec![],
         }
-    }
-}
-
-fn is_part_of_token(c: char) -> bool {
-    match c {
-        '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => true,
-        _ => false,
     }
 }

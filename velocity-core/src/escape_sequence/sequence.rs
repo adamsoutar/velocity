@@ -2,6 +2,16 @@
 pub enum EscapeSequence {
     // Sets the TextStyle with which we render things
     SelectGraphicRendition(Vec<SGRCode>), // ESC[...m
+    // Clears the line the cursor is on in various ways
+    EraseInLine(EraseInLineType), // ESC[...K
+}
+
+// NOTE: Cursor position does not change
+#[derive(FromPrimitive, Debug, PartialEq)]
+pub enum EraseInLineType {
+    ToEndOfLine = 0,
+    ToStartOfLine = 1,
+    EntireLine = 2,
 }
 
 #[derive(FromPrimitive, Clone, Copy)]
@@ -55,7 +65,7 @@ pub enum SGRCode {
     ResetItalicText = 23,
     ResetUnderlinedText = 24,
     ResetBlinkingText = 25,
-    ResetInverseVideoMode = 27,
+    ResetReverseVideoMode = 27,
     ResetInvisibleText = 28,
     ResetStrikethroughText = 29,
     SelectBlackForegroundColour = 30,
@@ -105,4 +115,5 @@ pub enum SGRCode {
     SelectBrightMagentaBackgroundColour = 105,
     SelectBrightCyanBackgroundColour = 106,
     SelectBrightWhiteBackgroundColour = 107,
+    Noop = 9999,
 }

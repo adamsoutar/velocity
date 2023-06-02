@@ -47,3 +47,36 @@ because they've got the space in them. NOTE: `ESC 7` and `ESC 8` are not
 standardised. They're technically "private codes". But that doesn't mean we
 shouldn't be prepared for them, because a program could chuck them out at
 any point.
+
+### Limiting scrollback
+
+There should be a shared pool between all velocity windows of how much memory
+they can spend on caching scrollback. At the same time, we should cache as much
+as we can. Why not, after all?
+
+So, I think about half of the system memory is fair. Eg. 8GB on a 16GB system.
+Then if you have four velocity windows open, they can use 2GB each. After that
+they just start purging lines because scrollback is a VecDeque
+
+### ECMA Standard notation
+
+01/11 is what the ECMA standard calls the ESC character.
+That character is 0x1B. So their format must be decimal representations of each
+byte with a slash in the middle. Why? Oh well.
+
+So they claim that a CSI ends with any char in the range 04/00 to 07/14.
+
+So that's 0x40 to 0x7E. In ASCII that's @ to ~, including all upper- and
+lower-case letters. That would line up with what we've seen so far.
+
+Parameter bytes are in the range 03/00 to 03/15. That's 0x30 to 0x3F. So that's
+0 to ? in ASCII.
+
+Intermediate bytes are in the range 02/00 to 02/15. That's 0x20 to 0x2F. So
+that's Space to forward slash in ASCII.
+
+### Crash
+
+Currently, `git diff` in the velocity directory seems to crash the program.
+I suspect my new line clearing code, because it's one of very few parts
+of velocity that can actually panic.

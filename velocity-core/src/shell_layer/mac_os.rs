@@ -20,6 +20,8 @@ mod ioctl {
     ioctl_none_bad!(tiocsctty, libc::TIOCSCTTY);
 }
 
+const COLUMN_STOMP_PADDING_HACK_REMOVE_ME: u16 = 1;
+
 pub struct MacOsShellLayer {
     pty_result: OpenptyResult,
     fd_drained: bool,
@@ -67,7 +69,9 @@ impl ShellLayer for MacOsShellLayer {
 impl MacOsShellLayer {
     pub fn new(rows: usize, cols: usize) -> Self {
         let winsize = winsize {
-            ws_col: cols as u16,
+            // TODO: We should just report exactly how big we are, but we don't support
+            //   stomping, so if we do that ZSH breaks.
+            ws_col: cols as u16 - COLUMN_STOMP_PADDING_HACK_REMOVE_ME,
             ws_row: rows as u16,
             // TODO: Is this important?
             ws_xpixel: 100,
@@ -100,9 +104,15 @@ impl MacOsShellLayer {
     unsafe fn fork_and_become_shell_as_child_process(&self) {
         let fork_result = fork();
 
+        // Fork split our program in two, and now we check who we are
+        // (at this point, both versions are running simulataneously, as though the
+        //  disassembler in the USS Enterprise had broken down)
         match fork_result {
+            // We are the parent in this instance, so we want nothing to do with this function
             Ok(ForkResult::Parent { .. }) => return,
+            // We're the child, happy days
             Ok(ForkResult::Child) => {}
+            // Oh crumbs.
             Err(_) => panic!("Process failed to fork"),
         }
 
@@ -127,18 +137,25 @@ impl MacOsShellLayer {
         // We no longer need this pointer to our slave fd (it's pointed to at 0, 1 and 2)
         close(pty_slave).unwrap();
 
-        let shell_path = CString::new("/Users/adam/Projects/ass/output").unwrap();
-        // let shell_path = CString::new("/bin/zsh").unwrap();
-        // TODO: Check if the rest of the env from the child process is inherited.
+        // See "man login". This program sets up some important env vars like $PATH and $HOME.
+        // It also automatically spawns the user's preferred shell.
+        let login_path = CString::new("/usr/bin/login").unwrap();
+        // We use a special flag to tell login not to prompt us for a password, because we're
+        // going to spawn it as the current user anyway.
+        let login_force_flag = CString::new("-f").unwrap();
+        // And then we pass the user's username as the argument for the force flag.
+        let user_name = CString::new(whoami::username()).unwrap();
+
+        // These are on top of the default ones, not in place of them
         let env_vars = [
             // This is very important, otherwise the shell won't talk to us properly
             // TODO: Eventually support xterm-256color
             CString::new("TERM=xterm-16color").unwrap(),
             // This is just showing off :)
             CString::new("TERM_PROGRAM=velocity").unwrap(),
-            // CString::new("TERM_PROGRAM=iTerm.app").unwrap(),
         ];
         let mut c_env_vars: Vec<*const i8> = env_vars.iter().map(|s| s.as_ptr()).collect();
+        // NULL-terminated
         c_env_vars.push(ptr::null());
 
         // The way the variadic arguments work here are:
@@ -150,8 +167,10 @@ impl MacOsShellLayer {
         // process *become* the shell program (maintaining the modifications we made to stdio above).
         // TODO: Panic if this is -1
         let _exec_result = execle(
-            shell_path.as_ptr(),
-            shell_path.clone().as_ptr(),
+            login_path.as_ptr(),
+            login_path.clone().as_ptr(),
+            login_force_flag.as_ptr(),
+            user_name.as_ptr(),
             ptr::null() as *const c_void,
             c_env_vars.as_slice().as_ptr(),
         );
