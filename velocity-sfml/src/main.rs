@@ -44,17 +44,33 @@ fn main() {
                 }
                 // NOTE: "system" is the Super key
                 Event::KeyPressed {
-                    code: _code,
+                    code,
                     alt: _alt,
-                    ctrl: _ctrl,
+                    ctrl,
                     shift: _shift,
                     system: _system,
                 } => {
-                    // TODO: Handle things like ^C here
+                    let key_number = code as isize;
+                    if key_number >= 0 && key_number <= 25 {
+                        // These are alphabetical keys
+                        // We don't support anything else at the moment
+                        if ctrl {
+                            // This maps C to ^C etc.
+                            let buffer = [key_number as u8 + 1];
+                            tty.write(&buffer);
+                        }
+                    }
                 }
                 Event::TextEntered { unicode } => {
                     let mut buffer = [0; 4];
-                    let bytes = unicode.encode_utf8(&mut buffer).as_bytes();
+                    let mut bytes = unicode.encode_utf8(&mut buffer).as_bytes();
+
+                    // If the user presses enter, SFML sends us a line feed, but
+                    // the shell expects a carriage return
+                    if bytes.len() == 1 && bytes[0] == '\n' as u8 {
+                        bytes = &['\r' as u8];
+                    }
+
                     tty.write(&bytes);
                 }
                 _ => {}

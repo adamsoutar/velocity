@@ -76,7 +76,6 @@ impl TtyState {
         // These args are 1-indexed, but our cursor is 0-indexed.
         self.cursor_pos.x = args.x - 1;
         self.cursor_pos.y = args.y - 1;
-        // TODO: Set this if x is 80?
         self.stomp = false;
     }
 
