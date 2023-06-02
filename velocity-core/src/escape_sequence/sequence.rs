@@ -4,6 +4,17 @@ pub enum EscapeSequence {
     SelectGraphicRendition(Vec<SGRCode>), // ESC[...m
     // Clears the line the cursor is on in various ways
     EraseInLine(EraseInLineType), // ESC[...K
+    // Clears the screen in various ways
+    EraseInDisplay(EraseInDisplayType), // ESC[...J
+}
+
+// NOTE: Cursor position does not change (outside of DOS)
+#[derive(FromPrimitive, Debug, PartialEq)]
+pub enum EraseInDisplayType {
+    ToEndOfScreen = 0,
+    ToStartOfScreen = 1,
+    EntireScreen = 2,
+    EntireScreenAndScrollbackBuffer = 3,
 }
 
 // NOTE: Cursor position does not change

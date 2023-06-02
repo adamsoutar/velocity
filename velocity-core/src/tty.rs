@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use crate::constants::{special_characters::*, *};
 use crate::escape_sequence::parser::{EscapeSequenceParser, SequenceFinished};
-use crate::escape_sequence::sequence::{EraseInLineType, EscapeSequence};
+use crate::escape_sequence::sequence::{EraseInDisplayType, EraseInLineType, EscapeSequence};
 use crate::shell_layer::{get_shell_layer, ShellLayer};
 use crate::text_styles::decorated_char::DecoratedChar;
 use crate::text_styles::text_style::TextStyle;
@@ -56,9 +56,47 @@ pub struct TtyState {
 impl TtyState {
     fn apply_escape_sequence(&mut self, seq: &EscapeSequence) {
         match seq {
-            EscapeSequence::EraseInLine(e) => self.apply_sequence_erase_in_line(e),
             EscapeSequence::SelectGraphicRendition(_) => self.text_style.apply_escape_sequence(seq),
+            EscapeSequence::EraseInLine(e) => self.apply_sequence_erase_in_line(e),
+            EscapeSequence::EraseInDisplay(e) => self.apply_sequence_erase_in_display(e),
+            // As we go through the process of implementing these, we'll keep adding new
+            // parsing code that then makes this match arm reachable.
+            #[allow(unreachable_patterns)]
             _ => println!("Unhandled escape sequence {:?}", seq),
+        }
+    }
+
+    fn apply_sequence_erase_in_display(&mut self, erase_type: &EraseInDisplayType) {
+        if *erase_type == EraseInDisplayType::ToEndOfScreen
+            || *erase_type == EraseInDisplayType::EntireScreen
+        {
+            // First, erase the rest of the current line
+            self.apply_sequence_erase_in_line(&EraseInLineType::ToEndOfLine);
+
+            // Then, erase all following lines
+            let start_line = self.scrollback_start + self.cursor_pos.y + 1;
+            for _ in start_line..self.scrollback_buffer.len() {
+                self.scrollback_buffer.pop_front();
+            }
+        }
+
+        if *erase_type == EraseInDisplayType::ToStartOfScreen
+            || *erase_type == EraseInDisplayType::EntireScreen
+        {
+            // First, erase the start of the current line
+            self.apply_sequence_erase_in_line(&EraseInLineType::ToStartOfLine);
+
+            // Then, erase all previous lines
+            for i in 0..self.scrollback_start + self.cursor_pos.y {
+                self.scrollback_buffer[i].clear();
+            }
+        }
+
+        // TODO: iTerm has some kind of permissions system with an option to diasallow
+        //   programs from doing this. We should offer the same.
+        if *erase_type == EraseInDisplayType::EntireScreenAndScrollbackBuffer {
+            self.scrollback_buffer.clear();
+            self.scrollback_start = 0;
         }
     }
 

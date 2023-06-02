@@ -76,6 +76,7 @@ impl EscapeSequenceParser {
         match c {
             'm' => self.parse_csi_select_graphic_rendition(),
             'K' => self.parse_csi_erase_in_line(),
+            'J' => self.parse_csi_erase_in_display(),
             _ => {
                 println!("Ignoring CSI due to unknown final byte '{}'", c);
                 None
@@ -84,6 +85,30 @@ impl EscapeSequenceParser {
     }
 
     fn parse_csi_erase_in_line(&mut self) -> Option<EscapeSequence> {
+        let erase_type = self.parse_csi_erase_type_number();
+        let maybe_erase_type_enum = num::FromPrimitive::from_usize(erase_type);
+        if maybe_erase_type_enum.is_none() {
+            println!("Unknown CSI line erase type '{}'", erase_type);
+            return None;
+        } else {
+            return Some(EscapeSequence::EraseInLine(maybe_erase_type_enum.unwrap()));
+        }
+    }
+
+    fn parse_csi_erase_in_display(&mut self) -> Option<EscapeSequence> {
+        let erase_type = self.parse_csi_erase_type_number();
+        let maybe_erase_type_enum = num::FromPrimitive::from_usize(erase_type);
+        if maybe_erase_type_enum.is_none() {
+            println!("Unknown CSI display erase type '{}'", erase_type);
+            return None;
+        } else {
+            return Some(EscapeSequence::EraseInDisplay(
+                maybe_erase_type_enum.unwrap(),
+            ));
+        }
+    }
+
+    fn parse_csi_erase_type_number(&mut self) -> usize {
         // This is the default value if there are no parameter bytes
         let mut erase_type = 0;
 
@@ -100,13 +125,7 @@ impl EscapeSequenceParser {
                 });
         }
 
-        let maybe_erase_type_enum = num::FromPrimitive::from_usize(erase_type);
-        if maybe_erase_type_enum.is_none() {
-            println!("Unknown CSI erase type '{}'", erase_type);
-            return None;
-        } else {
-            return Some(EscapeSequence::EraseInLine(maybe_erase_type_enum.unwrap()));
-        }
+        erase_type
     }
 
     fn parse_csi_select_graphic_rendition(&mut self) -> Option<EscapeSequence> {
