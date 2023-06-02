@@ -73,12 +73,36 @@ impl EscapeSequenceParser {
     }
 
     fn parse_csi_final_byte(&mut self, c: char) -> Option<EscapeSequence> {
+        if self.csi_parameter_chars.len() > 0 && self.csi_parameter_chars[0] == '?' {
+            // If a sequence begins ESC [ ?, it's a "private sequence". These are not standard,
+            // but some of them (like "bracketed paste mode") are so commonly used that we should
+            // support them.
+            return self.parse_csi_private_sequence_final_byte(c);
+        }
+
         match c {
             'm' => self.parse_csi_select_graphic_rendition(),
             'K' => self.parse_csi_erase_in_line(),
             'J' => self.parse_csi_erase_in_display(),
             _ => {
                 println!("Ignoring CSI due to unknown final byte '{}'", c);
+                None
+            }
+        }
+    }
+
+    fn parse_csi_private_sequence_final_byte(&mut self, c: char) -> Option<EscapeSequence> {
+        let p_str: String = self.csi_parameter_chars.clone().into_iter().collect();
+        match c {
+            // Eg. Enable bracketed paste is ESC[?2004h
+            _ if p_str == "?2004" && c == 'h' => {
+                Some(EscapeSequence::PrivateEnableBracketedPasteMode)
+            }
+            _ if p_str == "?2004" && c == 'l' => {
+                Some(EscapeSequence::PrivateDisableBracketedPasteMode)
+            }
+            _ => {
+                println!("Ignoring unknown CSI private sequence '{}', '{}'", p_str, c);
                 None
             }
         }

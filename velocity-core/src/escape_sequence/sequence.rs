@@ -6,6 +6,11 @@ pub enum EscapeSequence {
     EraseInLine(EraseInLineType), // ESC[...K
     // Clears the screen in various ways
     EraseInDisplay(EraseInDisplayType), // ESC[...J
+    // Private sequences (extensions to the standard that are in popular use)
+    // Surrounds pasted text with ESC[200~ and ESC[201~ (used by vim)
+    PrivateEnableBracketedPasteMode, // ESC[?2004h
+    // Turns the above off (obviously)
+    PrivateDisableBracketedPasteMode, // ESC[?2004l
 }
 
 // NOTE: Cursor position does not change (outside of DOS)

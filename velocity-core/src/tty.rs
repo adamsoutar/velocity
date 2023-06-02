@@ -33,6 +33,7 @@ pub struct TtyState {
     pub cursor_pos: CursorPosition,
     pub scrollback_start: usize,
     pub scrollback_buffer: ScrollbackBufferType,
+    pub bracketed_paste_mode: bool,
     read_buffer: [u8; FD_BUFFER_SIZE_BYTES],
     read_buffer_length: usize,
     shell_layer: Box<dyn ShellLayer>,
@@ -59,6 +60,8 @@ impl TtyState {
             EscapeSequence::SelectGraphicRendition(_) => self.text_style.apply_escape_sequence(seq),
             EscapeSequence::EraseInLine(e) => self.apply_sequence_erase_in_line(e),
             EscapeSequence::EraseInDisplay(e) => self.apply_sequence_erase_in_display(e),
+            EscapeSequence::PrivateEnableBracketedPasteMode => self.bracketed_paste_mode = true,
+            EscapeSequence::PrivateDisableBracketedPasteMode => self.bracketed_paste_mode = false,
             // As we go through the process of implementing these, we'll keep adding new
             // parsing code that then makes this match arm reachable.
             #[allow(unreachable_patterns)]
@@ -172,7 +175,7 @@ impl TtyState {
         //   operates purely on bytes before Unicode parsing. But most of the classic ones
         //   pre-date UTF-8 and therefore are defined in terms of ASCII.
         if let Some(parsed_char) = self.parse_partial_unicode(next_byte) {
-            println!("Char: {:?} ({})", parsed_char, parsed_char as usize);
+            // println!("Char: {:?} ({})", parsed_char, parsed_char as usize);
             match self.insertion_mode {
                 InsertionMode::Standard => self.standard_insert_char(parsed_char),
                 InsertionMode::EscapeSequence => self.escape_insert_char(parsed_char),
@@ -297,6 +300,7 @@ impl TtyState {
             cursor_pos: CursorPosition { x: 0, y: 0 },
             scrollback_start: 0,
             scrollback_buffer: VecDeque::with_capacity(rows),
+            bracketed_paste_mode: false,
             read_buffer: [0; FD_BUFFER_SIZE_BYTES],
             read_buffer_length: 0,
             shell_layer,
