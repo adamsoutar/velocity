@@ -70,7 +70,9 @@ impl TtyState {
         {
             let diff = line.len() as isize - cursor_x as isize;
             if diff > 0 {
-                line.truncate(diff as usize)
+                // Truncate takes the amount of elements you want to keep from the left, NOT the
+                // number to cut off the right.
+                line.truncate(line.len() - diff as usize)
             }
         }
 
