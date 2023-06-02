@@ -99,17 +99,18 @@ impl EscapeSequenceParser {
         if self.csi_parameter_chars.len() > 0 {
             let param_string: String = self.csi_parameter_chars.clone().into_iter().collect();
             let split: Vec<&str> = param_string.split(';').collect();
-            // There's at least an x argument because param chars > 0
-            x = split[0].parse::<usize>().unwrap_or_else(|err| {
+            // There's at least a y argument because param chars > 0
+            // NOTE: It's "row", then "column", not x then y
+            y = split[0].parse::<usize>().unwrap_or_else(|err| {
                 println!(
                     "Error parsing SetCursorPosition x arg '{}', defaulting to 1\n{:?}",
                     split[0], err
                 );
                 1
             });
-            // If there's still more to go, they're supplying y as well
+            // If there's still more to go, they're supplying x as well
             if split.len() > 1 {
-                y = split[1].parse::<usize>().unwrap_or_else(|err| {
+                x = split[1].parse::<usize>().unwrap_or_else(|err| {
                     println!(
                         "Error parsing SetCursorPosition y arg '{}', defaulting to 1\n{:?}",
                         split[0], err
@@ -187,6 +188,13 @@ impl EscapeSequenceParser {
     }
 
     fn parse_csi_select_graphic_rendition(&mut self) -> Option<EscapeSequence> {
+        if self.csi_parameter_chars.len() == 0 {
+            // No arguments is a reset (top sends this)
+            return Some(EscapeSequence::SelectGraphicRendition(vec![
+                SGRCode::ResetAllTextStyles,
+            ]));
+        }
+
         let param_string: String = self.csi_parameter_chars.clone().into_iter().collect();
         let params: Vec<SGRCode> = param_string
             .split(';')
