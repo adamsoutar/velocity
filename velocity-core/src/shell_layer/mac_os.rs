@@ -20,8 +20,6 @@ mod ioctl {
     ioctl_none_bad!(tiocsctty, libc::TIOCSCTTY);
 }
 
-const COLUMN_STOMP_PADDING_HACK_REMOVE_ME: u16 = 1;
-
 pub struct MacOsShellLayer {
     pty_result: OpenptyResult,
     fd_drained: bool,
@@ -71,7 +69,7 @@ impl MacOsShellLayer {
         let winsize = winsize {
             // TODO: We should just report exactly how big we are, but we don't support
             //   stomping, so if we do that ZSH breaks.
-            ws_col: cols as u16 - COLUMN_STOMP_PADDING_HACK_REMOVE_ME,
+            ws_col: cols as u16,
             ws_row: rows as u16,
             // TODO: Is this important?
             ws_xpixel: 100,

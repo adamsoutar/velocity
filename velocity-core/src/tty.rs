@@ -25,11 +25,14 @@ enum InsertionMode {
     EscapeSequence,
 }
 
+type LineType = VecDeque<DecoratedChar>;
+type ScrollbackBufferType = VecDeque<LineType>;
+
 pub struct TtyState {
     pub size: TtySize,
     pub cursor_pos: CursorPosition,
     pub scrollback_start: usize,
-    pub scrollback_buffer: VecDeque<VecDeque<DecoratedChar>>,
+    pub scrollback_buffer: ScrollbackBufferType,
     read_buffer: [u8; FD_BUFFER_SIZE_BYTES],
     read_buffer_length: usize,
     shell_layer: Box<dyn ShellLayer>,
@@ -42,6 +45,12 @@ pub struct TtyState {
     insertion_mode: InsertionMode,
     escape_sequence_parser: EscapeSequenceParser,
     text_style: TextStyle,
+    // This is a strange feature where we wait when we get to the edge of the screen
+    // for one character before doing a newline. This is so that programs can print
+    // exactly 80 characters on an 80 character screen without breaking, but 81 chars
+    // breaks the line.
+    // The name is taken from SerenityOS' LibVT. I can't find a standard name for it.
+    stomp: bool,
 }
 
 impl TtyState {
@@ -77,7 +86,7 @@ impl TtyState {
         }
     }
 
-    fn get_current_line_ref(&mut self) -> &mut VecDeque<DecoratedChar> {
+    fn get_current_line_ref(&mut self) -> &mut LineType {
         &mut self.scrollback_buffer[self.scrollback_start + self.cursor_pos.y]
     }
 
@@ -162,9 +171,20 @@ impl TtyState {
                 .push_back(VecDeque::with_capacity(self.size.cols));
         }
 
+        match c {
+            BACKSPACE | CARRIAGE_RETURN | HORIZONTAL_TAB | BELL | FORMFEED => {
+                self.handle_c0_control_code(c);
+                return;
+            }
+            _ => {}
+        }
+
+        // From now on, we know it's a printable character. So we need to handle things like spacing
+        // and wrapping
         let mut line_buffer = &mut self.scrollback_buffer[cursor_line];
-        // TODO: This (the cursor_pos.x check) is wrong. It doesn't do stomp
-        if c == NEWLINE || self.cursor_pos.x >= self.size.cols {
+
+        if c == NEWLINE || (self.cursor_pos.x >= self.size.cols - 1 && self.stomp) {
+            self.stomp = false;
             self.cursor_pos.x = 0;
             self.cursor_pos.y += 1;
 
@@ -177,29 +197,39 @@ impl TtyState {
             self.scrollback_buffer
                 .push_back(VecDeque::with_capacity(self.size.cols));
             line_buffer = &mut self.scrollback_buffer[self.scrollback_start + self.cursor_pos.y];
-            if c == '\n' {
+            if c == NEWLINE {
                 return;
             }
         }
 
-        if c == BACKSPACE {
-            line_buffer.pop_back();
-            self.cursor_pos.x -= 1;
-            return;
-        }
-
-        if c == CARRIAGE_RETURN {
-            self.cursor_pos.x = 0;
-            return;
-        }
-
         let d_c = DecoratedChar::new(c, self.text_style);
-        // line_buffer.insert(self.cursor_pos.x, d_c);
         while line_buffer.len() <= self.cursor_pos.x {
             line_buffer.push_back(DecoratedChar::new(' ', self.text_style));
         }
         line_buffer[self.cursor_pos.x] = d_c;
-        self.cursor_pos.x += 1;
+
+        if self.cursor_pos.x == self.size.cols - 1 {
+            // Slightly unusual legacy behaviour. See the comment in the struct
+            self.stomp = true;
+        } else {
+            self.cursor_pos.x += 1;
+        }
+    }
+
+    fn handle_c0_control_code(&mut self, c: char) {
+        let line_buffer = self.get_current_line_ref();
+        match c {
+            BACKSPACE => {
+                line_buffer.pop_back();
+                self.cursor_pos.x -= 1
+            }
+            CARRIAGE_RETURN => self.cursor_pos.x = 0,
+            HORIZONTAL_TAB => {
+                // Move the cursor right to the next multiple of 8
+                self.cursor_pos.x += 8 - (self.cursor_pos.x % 8);
+            }
+            _ => println!("Unimplemented c0 control code {:?} ({})", c, c as usize),
+        }
     }
 
     pub fn read(&mut self) {
@@ -235,6 +265,7 @@ impl TtyState {
             insertion_mode: InsertionMode::Standard,
             escape_sequence_parser: EscapeSequenceParser::new(),
             text_style: TextStyle::new(),
+            stomp: false,
         }
     }
 }
