@@ -80,9 +80,28 @@ fn main() {
                     continue;
                 }
 
+                let char_pos = Vector2f::new(l as f32 * font_width, i as f32 * font_height);
+
+                let mut fg_colour = terminal_colour_to_sfml_colour(
+                    letter.style.foreground,
+                    DefaultColourVersion::Foreground,
+                );
+                let mut bg_colour = terminal_colour_to_sfml_colour(
+                    letter.style.background,
+                    DefaultColourVersion::Background,
+                );
+                if letter.style.reverse_video {
+                    std::mem::swap(&mut fg_colour, &mut bg_colour)
+                }
+
+                // First, draw the background behind the character
+                let mut bg = RectangleShape::with_size(Vector2f::new(font_width, font_height));
+                bg.set_fill_color(bg_colour);
+                bg.set_position(char_pos);
+                window.draw(&bg);
+
                 let mut char_text = Text::new(&letter.char.to_string(), &font, FONT_SIZE);
-                char_text
-                    .set_position(Vector2f::new(l as f32 * font_width, i as f32 * font_height));
+                char_text.set_position(char_pos);
 
                 // The SFML TextStyle system is a bitmask.
                 let mut sfml_text_style: sfml::graphics::TextStyle =
@@ -101,10 +120,7 @@ fn main() {
                 }
                 char_text.set_style(sfml_text_style);
 
-                char_text.set_fill_color(terminal_colour_to_sfml_colour(
-                    letter.style.foreground,
-                    DefaultColourVersion::Foreground,
-                ));
+                char_text.set_fill_color(fg_colour);
 
                 window.draw(&char_text);
             }
