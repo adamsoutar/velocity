@@ -81,6 +81,27 @@ impl EscapeSequenceParser {
         }
 
         match c {
+            'A' => Some(EscapeSequence::MoveCursorUp(
+                self.parse_csi_single_number_parameter(),
+            )),
+            'B' => Some(EscapeSequence::MoveCursorDown(
+                self.parse_csi_single_number_parameter(),
+            )),
+            'C' => Some(EscapeSequence::MoveCursorForward(
+                self.parse_csi_single_number_parameter(),
+            )),
+            'D' => Some(EscapeSequence::MoveCursorBack(
+                self.parse_csi_single_number_parameter(),
+            )),
+            'E' => Some(EscapeSequence::MoveCursorToNextLine(
+                self.parse_csi_single_number_parameter(),
+            )),
+            'F' => Some(EscapeSequence::MoveCursorToPreviousLine(
+                self.parse_csi_single_number_parameter(),
+            )),
+            'G' => Some(EscapeSequence::MoveCursorHorizontalAbsolute(
+                self.parse_csi_single_number_parameter(),
+            )),
             'H' => self.parse_csi_set_cursor_position(),
             'J' => self.parse_csi_erase_in_display(),
             'K' => self.parse_csi_erase_in_line(),
@@ -90,6 +111,17 @@ impl EscapeSequenceParser {
                 None
             }
         }
+    }
+
+    fn parse_csi_single_number_parameter(&mut self) -> usize {
+        let param_string: String = self.csi_intermediate_chars.clone().into_iter().collect();
+        param_string.parse::<usize>().unwrap_or_else(|err| {
+            println!(
+                "Error parsing CSI single number parameter '{}', defaulting to 1\n{:?}",
+                param_string, err
+            );
+            1
+        })
     }
 
     fn parse_csi_set_cursor_position(&mut self) -> Option<EscapeSequence> {

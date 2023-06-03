@@ -1,5 +1,19 @@
 #[derive(Debug)]
 pub enum EscapeSequence {
+    // Moves the cursor up by n lines
+    MoveCursorUp(usize), // ESC[...A
+    // Moves the cursor down by n lines
+    MoveCursorDown(usize), // ESC[...B
+    // Moves the cursor right by n columns
+    MoveCursorForward(usize), // ESC[...C
+    // Moves the cursor left by n columns
+    MoveCursorBack(usize), // ESC[...D
+    // Moves the cursor to the beginning of the line n lines down
+    MoveCursorToNextLine(usize), // ESC[...E
+    // Moves the cursor to the beginning of the line n lines up
+    MoveCursorToPreviousLine(usize), // ESC[...F
+    // Moves the cursor to column n
+    MoveCursorHorizontalAbsolute(usize), // ESC[...G
     // Moves the cursor to x, y (1-indexed). x and y default to 1 if not present
     SetCursorPosition(SetCursorPositionArgs), // ESC[...H
     // Sets the TextStyle with which we render things

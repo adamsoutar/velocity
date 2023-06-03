@@ -284,6 +284,7 @@ impl TtyState {
         let line_buffer = self.get_current_line_ref();
         match c {
             BACKSPACE => {
+                // TODO: This won't work when the cursor is mid-line
                 line_buffer.pop_back();
                 self.cursor_pos.x -= 1
             }
