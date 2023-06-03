@@ -281,11 +281,13 @@ impl TtyState {
     }
 
     fn handle_c0_control_code(&mut self, c: char) {
+        let cursor_x = self.cursor_pos.x;
         let line_buffer = self.get_current_line_ref();
         match c {
             BACKSPACE => {
-                // TODO: This won't work when the cursor is mid-line
-                line_buffer.pop_back();
+                if line_buffer.len() >= cursor_x {
+                    line_buffer.remove(cursor_x - 1);
+                }
                 self.cursor_pos.x -= 1
             }
             CARRIAGE_RETURN => self.cursor_pos.x = 0,
