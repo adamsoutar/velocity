@@ -80,3 +80,15 @@ that's Space to forward slash in ASCII.
 Currently, `git diff` in the velocity directory seems to crash the program.
 I suspect my new line clearing code, because it's one of very few parts
 of velocity that can actually panic.
+
+### Handling resize
+
+We can handle resizing in the SFML port but construcing a new view and passing
+it to set_view on the RenderWindow.
+
+As for letting the terminal programs know, there are two things we can do.
+First: Send the TIOCSWINSZ ioctl to the master file descriptor. This is what
+iTerm2 does.
+Second: Send a SIGWINCH to the shell process pid. I can't see this symbol in
+the iTerm source, so either they do it under a different name, or TIOCSWINSZ
+does this automatically.

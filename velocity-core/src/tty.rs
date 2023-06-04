@@ -285,9 +285,7 @@ impl TtyState {
         let line_buffer = self.get_current_line_ref();
         match c {
             BACKSPACE => {
-                if line_buffer.len() >= cursor_x {
-                    line_buffer.remove(cursor_x - 1);
-                }
+                line_buffer.remove(cursor_x - 1);
                 self.cursor_pos.x -= 1
             }
             CARRIAGE_RETURN => self.cursor_pos.x = 0,
