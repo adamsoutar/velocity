@@ -113,9 +113,9 @@ impl EscapeSequenceParser {
         }
     }
 
-    fn parse_csi_single_number_parameter(&mut self) -> usize {
+    fn parse_csi_single_number_parameter(&mut self) -> isize {
         let param_string: String = self.csi_intermediate_chars.clone().into_iter().collect();
-        param_string.parse::<usize>().unwrap_or_else(|err| {
+        param_string.parse::<isize>().unwrap_or_else(|err| {
             println!(
                 "Error parsing CSI single number parameter '{}', defaulting to 1\n{:?}",
                 param_string, err

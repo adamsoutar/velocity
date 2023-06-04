@@ -16,8 +16,8 @@ pub struct TtySize {
 }
 
 pub struct CursorPosition {
-    pub x: usize,
-    pub y: usize,
+    pub x: isize,
+    pub y: isize,
 }
 
 // Not vim-related.
@@ -60,6 +60,28 @@ pub struct TtyState {
 impl TtyState {
     fn apply_escape_sequence(&mut self, seq: &EscapeSequence) {
         match seq {
+            EscapeSequence::MoveCursorUp(n) => {
+                self.set_cursor_pos(self.cursor_pos.x, self.cursor_pos.y - n)
+            }
+            EscapeSequence::MoveCursorDown(n) => {
+                self.set_cursor_pos(self.cursor_pos.x, self.cursor_pos.y + n)
+            }
+            // TODO: Does this break over line boundaries?
+            EscapeSequence::MoveCursorForward(n) => {
+                self.set_cursor_pos(self.cursor_pos.x + n, self.cursor_pos.y)
+            }
+            EscapeSequence::MoveCursorBack(n) => {
+                self.set_cursor_pos(self.cursor_pos.x - n, self.cursor_pos.y)
+            }
+            EscapeSequence::MoveCursorToNextLine(n) => {
+                self.set_cursor_pos(0, self.cursor_pos.y + n)
+            }
+            EscapeSequence::MoveCursorToPreviousLine(n) => {
+                self.set_cursor_pos(0, self.cursor_pos.y - n)
+            }
+            EscapeSequence::MoveCursorHorizontalAbsolute(n) => {
+                self.set_cursor_pos(*n, self.cursor_pos.y)
+            }
             EscapeSequence::SetCursorPosition(p) => self.apply_sequence_set_cursor_position(p),
             EscapeSequence::EraseInDisplay(e) => self.apply_sequence_erase_in_display(e),
             EscapeSequence::EraseInLine(e) => self.apply_sequence_erase_in_line(e),
@@ -74,13 +96,15 @@ impl TtyState {
     }
 
     fn apply_sequence_set_cursor_position(&mut self, args: &SetCursorPositionArgs) {
+        self.set_cursor_pos(args.x as isize - 1, args.y as isize - 1)
+    }
+
+    fn set_cursor_pos(&mut self, x: isize, y: isize) {
         // These args are 1-indexed, but our cursor is 0-indexed.
-        let x = args.x as isize - 1;
-        let y = args.y as isize - 1;
         let max_x = self.size.cols as isize - 1;
         let max_y = self.size.rows as isize - 1;
-        self.cursor_pos.x = min(max(x, 0), max_x) as usize;
-        self.cursor_pos.y = min(max(y, 0), max_y) as usize;
+        self.cursor_pos.x = min(max(x, 0), max_x);
+        self.cursor_pos.y = min(max(y, 0), max_y);
         self.stomp = false;
     }
 
@@ -92,7 +116,7 @@ impl TtyState {
             self.apply_sequence_erase_in_line(&EraseInLineType::ToEndOfLine);
 
             // Then, erase all following lines
-            let start_line = self.scrollback_start + self.cursor_pos.y + 1;
+            let start_line = self.scrollback_start + self.cursor_pos.y as usize + 1;
             for _ in start_line..self.scrollback_buffer.len() {
                 self.scrollback_buffer.pop_front();
             }
@@ -105,7 +129,7 @@ impl TtyState {
             self.apply_sequence_erase_in_line(&EraseInLineType::ToStartOfLine);
 
             // Then, erase all previous lines
-            for i in 0..self.scrollback_start + self.cursor_pos.y {
+            for i in 0..self.scrollback_start + self.cursor_pos.y as usize {
                 self.scrollback_buffer[i].clear();
             }
         }
@@ -124,7 +148,7 @@ impl TtyState {
 
         if *erase_type == EraseInLineType::ToEndOfLine || *erase_type == EraseInLineType::EntireLine
         {
-            let diff = line.len() as isize - cursor_x as isize;
+            let diff = line.len() as isize - cursor_x;
             if diff > 0 {
                 // Truncate takes the amount of elements you want to keep from the left, NOT the
                 // number to cut off the right.
@@ -135,7 +159,7 @@ impl TtyState {
         if *erase_type == EraseInLineType::ToStartOfLine
             || *erase_type == EraseInLineType::EntireLine
         {
-            let diff = cursor_x as isize - line.len() as isize;
+            let diff = cursor_x - line.len() as isize;
             if diff > 0 {
                 println!(
                     "We've been asked to EraseToStartOfLine at cursor {}, line length: {}",
@@ -144,13 +168,13 @@ impl TtyState {
                 );
                 // This is just an efficient way to truncate() the other side.
                 // VecDeque doesn't have truncate_front
-                drop(line.drain(0..cursor_x))
+                drop(line.drain(0..cursor_x as usize))
             }
         }
     }
 
     fn ensure_backing_store_for_current_line(&mut self) {
-        let cursor_line = self.scrollback_start + self.cursor_pos.y;
+        let cursor_line = self.scrollback_start + self.cursor_pos.y as usize;
         while self.scrollback_buffer.len() <= cursor_line {
             self.scrollback_buffer
                 .push_back(VecDeque::with_capacity(self.size.cols));
@@ -159,7 +183,7 @@ impl TtyState {
 
     fn get_current_line_ref(&mut self) -> &mut LineType {
         self.ensure_backing_store_for_current_line();
-        &mut self.scrollback_buffer[self.scrollback_start + self.cursor_pos.y]
+        &mut self.scrollback_buffer[self.scrollback_start + self.cursor_pos.y as usize]
     }
 
     // Returns a character *if* it's finished
@@ -204,7 +228,7 @@ impl TtyState {
         //   operates purely on bytes before Unicode parsing. But most of the classic ones
         //   pre-date UTF-8 and therefore are defined in terms of ASCII.
         if let Some(parsed_char) = self.parse_partial_unicode(next_byte) {
-            println!("Char: {:?} ({})", parsed_char, parsed_char as usize);
+            // println!("Char: {:?} ({})", parsed_char, parsed_char as usize);
             match self.insertion_mode {
                 InsertionMode::Standard => self.standard_insert_char(parsed_char),
                 InsertionMode::EscapeSequence => self.escape_insert_char(parsed_char),
@@ -249,35 +273,36 @@ impl TtyState {
 
         // From now on, we know it's a printable character. So we need to handle things like spacing
         // and wrapping
-        let cursor_line = self.scrollback_start + self.cursor_pos.y;
+        let cursor_line = self.scrollback_start + self.cursor_pos.y as usize;
         let mut line_buffer = &mut self.scrollback_buffer[cursor_line];
 
-        if c == NEWLINE || (self.cursor_pos.x >= self.size.cols - 1 && self.stomp) {
+        if c == NEWLINE || (self.cursor_pos.x as usize >= self.size.cols - 1 && self.stomp) {
             self.stomp = false;
             self.cursor_pos.x = 0;
             self.cursor_pos.y += 1;
 
             // If we're pushed too low, scroll
-            if self.cursor_pos.y >= self.size.rows {
+            if self.cursor_pos.y as usize >= self.size.rows {
                 self.cursor_pos.y -= 1;
                 self.scrollback_start += 1;
             }
 
             self.scrollback_buffer
                 .push_back(VecDeque::with_capacity(self.size.cols));
-            line_buffer = &mut self.scrollback_buffer[self.scrollback_start + self.cursor_pos.y];
+            line_buffer =
+                &mut self.scrollback_buffer[self.scrollback_start + self.cursor_pos.y as usize];
             if c == NEWLINE {
                 return;
             }
         }
 
         let d_c = DecoratedChar::new(c, self.text_style);
-        while line_buffer.len() <= self.cursor_pos.x {
+        while line_buffer.len() <= self.cursor_pos.x as usize {
             line_buffer.push_back(DecoratedChar::new(' ', self.text_style));
         }
-        line_buffer[self.cursor_pos.x] = d_c;
+        line_buffer[self.cursor_pos.x as usize] = d_c;
 
-        if self.cursor_pos.x == self.size.cols - 1 {
+        if self.cursor_pos.x as usize == self.size.cols - 1 {
             // Slightly unusual legacy behaviour. See the comment in the struct
             self.stomp = true;
         } else {
@@ -290,7 +315,9 @@ impl TtyState {
         let line_buffer = self.get_current_line_ref();
         match c {
             BACKSPACE => {
-                line_buffer.remove(cursor_x - 1);
+                if cursor_x > 0 {
+                    line_buffer.remove(cursor_x as usize - 1);
+                }
                 self.cursor_pos.x -= 1
             }
             CARRIAGE_RETURN => self.cursor_pos.x = 0,

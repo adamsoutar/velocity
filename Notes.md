@@ -92,3 +92,10 @@ iTerm2 does.
 Second: Send a SIGWINCH to the shell process pid. I can't see this symbol in
 the iTerm source, so either they do it under a different name, or TIOCSWINSZ
 does this automatically.
+
+### vttest
+
+Currently the behaviour is very odd. vttest hangs but then zsh catches the
+fact that it's died. iTerm2 doesn't do this, so we're somehow doing something
+wrong. I think it's somewhere in the file descriptor buffering/polling/reading
+etc.
