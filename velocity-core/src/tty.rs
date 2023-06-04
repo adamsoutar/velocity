@@ -1,3 +1,4 @@
+use std::cmp::{max, min};
 use std::collections::VecDeque;
 
 use crate::constants::{special_characters::*, *};
@@ -74,8 +75,12 @@ impl TtyState {
 
     fn apply_sequence_set_cursor_position(&mut self, args: &SetCursorPositionArgs) {
         // These args are 1-indexed, but our cursor is 0-indexed.
-        self.cursor_pos.x = args.x - 1;
-        self.cursor_pos.y = args.y - 1;
+        let x = args.x as isize - 1;
+        let y = args.y as isize - 1;
+        let max_x = self.size.cols as isize - 1;
+        let max_y = self.size.rows as isize - 1;
+        self.cursor_pos.x = min(max(x, 0), max_x) as usize;
+        self.cursor_pos.y = min(max(y, 0), max_y) as usize;
         self.stomp = false;
     }
 
