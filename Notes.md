@@ -99,3 +99,9 @@ Currently the behaviour is very odd. vttest hangs but then zsh catches the
 fact that it's died. iTerm2 doesn't do this, so we're somehow doing something
 wrong. I think it's somewhere in the file descriptor buffering/polling/reading
 etc.
+
+### TODO: Being a Terminal to macOS.
+
+iTerm can be set to automatically open when things want a terminal.
+I can't remember how it does that. Is it being the default file handler
+of `.command` files or something?

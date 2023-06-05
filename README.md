@@ -51,6 +51,23 @@ goal. It's just a gag because it goes with the word Terminal
 and my first thought, "illness", didn't have such a nice ring
 to it.
 
+## Install me
+
+<table>
+<tr>
+<th>Running macOS?</th>
+<th>Something else for some reason?</th>
+</tr>
+<tr>
+<td><a href="https://github.com/adamsoutar/velocity/releases">
+  Download a release
+</a></td>
+<td>You'll need <a href="./build-instructions.md">
+  build instructions
+</a></td>
+</tr>
+</table>
+
 ---
 
 <h6 align=center>By Adam Soutar
