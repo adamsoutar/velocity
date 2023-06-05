@@ -36,6 +36,12 @@ parsing, escape sequence implementation, etc. is all custom.
   <img src="./assets/screenshots/v-ass.png">
 </td>
 </tr>
+<tr>
+  <th>It's also somewhat cross-platform. Here it is on Linux!</th>
+</tr>
+<td>
+  <img src="./assets/screenshots/v-linux.png">
+</td>
 </table>
 
 ## Is it the best/fastest/most cromulent at $X?
