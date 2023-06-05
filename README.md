@@ -26,7 +26,7 @@ parsing, escape sequence implementation, etc. is all custom.
 </tr>
 <tr>
   <th>nano</th>
-  <th>Escape codes printed by a program from my hand-written C compiler</th>
+  <th>Escape codes printed by a program from <a href="https://github.com/adamsoutar/ass">my hand-written C compiler<a/></th>
 </tr>
 <tr>
 <td>
