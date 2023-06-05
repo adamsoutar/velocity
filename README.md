@@ -14,7 +14,7 @@ parsing, escape sequence implementation, etc. is all custom.
 
 <table>
 <tr>
-  <th>neofetch</th><th>git</th>
+  <th width="50%">neofetch</th><th>git</th>
 </tr>
 <tr>
 <td>
