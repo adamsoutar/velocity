@@ -136,19 +136,10 @@ impl LinuxShellLayer {
         // We no longer need this pointer to our slave fd (it's pointed to at 0, 1 and 2)
         close(pty_slave).unwrap();
 
-        // Then effectively become root. This is required to run login on Linux
-        // setuid(0.into()).unwrap();
-
-        // On Linux, login is not setuid, so we need sudo
-        let sudo_path = CString::new("/usr/bin/sudo").unwrap();
-        // See "man login". This program sets up some important env vars like $PATH and $HOME.
-        // It also automatically spawns the user's preferred shell.
-        let login_path = CString::new("/usr/bin/login").unwrap();
-        // We use a special flag to tell login not to prompt us for a password, because we're
-        // going to spawn it as the current user anyway.
-        let login_force_flag = CString::new("-f").unwrap();
-        // Then we pass the username as the argument to -f
-        let user_name = CString::new(whoami::username()).unwrap();
+        // TODO: Find out which shell the user has set, rather than hardcoding zsh
+        let shell_path = CString::new("/usr/bin/zsh").unwrap();
+        // Pass --login, which should set up extra env like $PATH
+        let shell_login_flag = CString::new("--login").unwrap();
 
         // These are on top of the default ones, not in place of them
         let env_vars = [
@@ -171,11 +162,9 @@ impl LinuxShellLayer {
         // process *become* the shell program (maintaining the modifications we made to stdio above).
         // TODO: Panic if this is -1
         let _exec_result = execle(
-            sudo_path.as_ptr(),
-            login_path.as_ptr(),
-            login_path.clone().as_ptr(),
-            login_force_flag.as_ptr(),
-            user_name.as_ptr(),
+            shell_path.as_ptr(),
+            shell_path.clone().as_ptr(),
+            shell_login_flag.as_ptr(),
             ptr::null() as *const c_void,
             c_env_vars.as_slice().as_ptr(),
         );
