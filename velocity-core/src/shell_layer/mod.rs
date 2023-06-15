@@ -1,5 +1,6 @@
 use crate::constants::*;
 
+mod linux;
 mod mac_os;
 
 // This represents an abstraction of getting bytes to and from the shell program,
@@ -14,5 +15,6 @@ pub trait ShellLayer {
 
 pub fn get_shell_layer(rows: usize, cols: usize) -> Box<dyn ShellLayer> {
     // TODO: Actually check build-time flags if we ever support more than just macOS some day.
-    Box::new(mac_os::MacOsShellLayer::new(rows, cols))
+    // Box::new(mac_os::MacOsShellLayer::new(rows, cols))
+    Box::new(linux::LinuxShellLayer::new(rows, cols))
 }

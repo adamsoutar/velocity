@@ -15,7 +15,7 @@ const ROWS: usize = 25;
 
 fn main() {
     // iTerm uses "Monaco"
-    let font = Font::from_file("/System/Library/Fonts/Monaco.ttf").unwrap();
+    let font = Font::from_file("/usr/share/fonts/truetype/noto/NotoMono-Regular.ttf").unwrap();
     // TODO: Loop through all the characters widths and choose the largest - or the
     //   space advance if that's bigger
     let font_width = font.glyph(32, FONT_SIZE, false, 0.).advance();
