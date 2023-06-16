@@ -14,8 +14,14 @@ const COLUMNS: usize = 80;
 const ROWS: usize = 25;
 
 fn main() {
-    // iTerm uses "Monaco"
-    let font = Font::from_file("/usr/share/fonts/truetype/noto/NotoMono-Regular.ttf").unwrap();
+    // TODO: Less font hardcoding. Eg, some Linux users might have their fonts in a different
+    //   place. Can we ask the system where fonts are?
+    #[cfg(target_os = "macos")]
+    let font_path = "/System/Library/Fonts/Monaco.ttf";
+    #[cfg(target_os = "linux")]
+    let font_path = "/usr/share/fonts/truetype/noto/NotoMono-Regular.ttf";
+
+    let font = Font::from_file(font_path).unwrap();
     // TODO: Loop through all the characters widths and choose the largest - or the
     //   space advance if that's bigger
     let font_width = font.glyph(32, FONT_SIZE, false, 0.).advance();
