@@ -6,9 +6,10 @@ use libc::{c_void, execle, winsize};
 use nix::{
     poll::{poll, PollFd, PollFlags},
     pty::{openpty, OpenptyResult},
-    unistd::{close, dup2, fork, setsid, setuid, ForkResult},
+    unistd::{close, dup2, fork, setsid, ForkResult},
 };
 use std::{
+    env,
     ffi::CString,
     fs::File,
     io::{Read, Write},
@@ -137,18 +138,34 @@ impl LinuxShellLayer {
         close(pty_slave).unwrap();
 
         // TODO: Find out which shell the user has set, rather than hardcoding zsh
+        //   xterm does this by reading /etc/passwd, and executing /bin/sh if that doesn't work.
         let shell_path = CString::new("/usr/bin/zsh").unwrap();
         // Pass --login, which should set up extra env like $PATH
+        // TODO: Offer the user the chance to choose whether they want a login shell or not.
         let shell_login_flag = CString::new("--login").unwrap();
 
-        // These are on top of the default ones, not in place of them
-        let env_vars = [
-            // This is very important, otherwise the shell won't talk to us properly
-            // TODO: Eventually support xterm-256color
-            CString::new("TERM=xterm-256color").unwrap(),
-            // This is just showing off :)
-            CString::new("TERM_PROGRAM=velocity").unwrap(),
-        ];
+        // Change to the user's home directory before spawning the shell program
+        env::set_current_dir(env::var("HOME").unwrap_or("/".to_string())).unwrap();
+
+        let mut env_vars = vec![];
+
+        // First, we copy all of our own environment variables to this new process.
+        // This will give it the important default ones like PATH etc.
+        for var in env::vars() {
+            // Skip these, we'll set our own
+            if var.0 == "TERM" || var.0 == "TERMPROGRAM" {
+                continue;
+            }
+            env_vars.push(CString::new(format!("{}={}", var.0, var.1)).unwrap())
+        }
+
+        // This is very important, otherwise the shell won't talk to us properly
+        // NOTE: We only support 16 colours, but on the distro I tested with (Pop!_OS)
+        //   16 colour support is not configured. It only recognises 256color as ANSI.
+        env_vars.push(CString::new("TERM=xterm-256color").unwrap());
+        // This is just showing off :)
+        env_vars.push(CString::new("TERM_PROGRAM=velocity").unwrap());
+
         let mut c_env_vars: Vec<*const i8> = env_vars.iter().map(|s| s.as_ptr()).collect();
         // NULL-terminated
         c_env_vars.push(ptr::null());

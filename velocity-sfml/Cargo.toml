@@ -3,15 +3,15 @@ name = "velocity-sfml"
 version = "0.1.0"
 authors = ["Adam Soutar <me@aso.sh>"]
 edition = "2021"
-description="SFML backend for Velocity"
+description ="SFML backend for Velocity"
 
 [package.metadata.bundle]
-name="Velocity"
-identifier="sh.aso.velocity"
-icon=["../assets/bundle-icons/32x32.png", "../assets/bundle-icons/128x128.png", "../assets/bundle-icons/128x128@2x.png"]
-copyright="Copyright 2023 Adam Soutar"
-short_description="A terminal with NIH syndrome"
-long_description="A terminal program with not-invented-here syndrome"
+name = "Velocity"
+identifier = "sh.aso.velocity"
+icon = ["../assets/bundle-icons/32x32.png", "../assets/bundle-icons/128x128.png", "../assets/bundle-icons/128x128@2x.png"]
+copyright = "Copyright 2023 Adam Soutar"
+short_description = "Velocity"
+long_description = "A terminal program with not-invented-here syndrome"
 
 [dependencies]
 velocity-core = { path = "../velocity-core" }
