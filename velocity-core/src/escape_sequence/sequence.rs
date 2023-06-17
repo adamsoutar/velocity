@@ -27,6 +27,10 @@ pub enum EscapeSequence {
     PrivateEnableBracketedPasteMode, // ESC[?2004h
     // Turns the above off (obviously)
     PrivateDisableBracketedPasteMode, // ESC[?2004l
+    // Turns on Auto-Wrap mode
+    EnableAutoWrapMode,
+    // Turns off Auto-Wrap mode
+    DisableAutoWrapMode,
 }
 
 #[derive(Debug)]

@@ -92,6 +92,8 @@ impl TtyState {
             EscapeSequence::SelectGraphicRendition(_) => self.text_style.apply_escape_sequence(seq),
             EscapeSequence::PrivateEnableBracketedPasteMode => self.bracketed_paste_mode = true,
             EscapeSequence::PrivateDisableBracketedPasteMode => self.bracketed_paste_mode = false,
+            EscapeSequence::EnableAutoWrapMode => self.autowrap = true,
+            EscapeSequence::DisableAutoWrapMode => self.autowrap = false,
             // As we go through the process of implementing these, we'll keep adding new
             // parsing code that then makes this match arm reachable.
             #[allow(unreachable_patterns)]
