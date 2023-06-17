@@ -287,8 +287,12 @@ impl TtyState {
                 self.scrollback_start += 1;
             }
 
-            self.scrollback_buffer
-                .push_back(VecDeque::with_capacity(self.size.cols));
+            while self.scrollback_start + self.cursor_pos.y as usize >= self.scrollback_buffer.len()
+            {
+                self.scrollback_buffer
+                    .push_back(VecDeque::with_capacity(self.size.cols));
+            }
+
             line_buffer =
                 &mut self.scrollback_buffer[self.scrollback_start + self.cursor_pos.y as usize];
             if c == NEWLINE {
