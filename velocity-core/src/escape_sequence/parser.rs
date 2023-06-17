@@ -116,7 +116,7 @@ impl EscapeSequenceParser {
     }
 
     fn parse_csi_single_number_parameter(&mut self) -> isize {
-        let param_string: String = self.csi_intermediate_chars.clone().into_iter().collect();
+        let param_string: String = self.csi_parameter_chars.clone().into_iter().collect();
         param_string.parse::<isize>().unwrap_or_else(|err| {
             // Let's not be noisy about omitted args.
             if *err.kind() != IntErrorKind::Empty {
