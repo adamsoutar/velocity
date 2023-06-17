@@ -150,6 +150,8 @@ impl MacOsShellLayer {
             // TODO: Eventually support xterm-256color
             CString::new("TERM=xterm-16color").unwrap(),
             // This is just showing off :)
+            // TODO: This doesn't seem to work on Apple Silicon. It's like it has a
+            //   whitelist of acceptable overriden env vars for /bin/login.
             CString::new("TERM_PROGRAM=velocity").unwrap(),
         ];
         let mut c_env_vars: Vec<*const i8> = env_vars.iter().map(|s| s.as_ptr()).collect();
