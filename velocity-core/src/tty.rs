@@ -55,6 +55,10 @@ pub struct TtyState {
     // breaks the line.
     // The name is taken from SerenityOS' LibVT. I can't find a standard name for it.
     stomp: bool,
+    // (Private xterm extension) when this is enabled, the cursor wraps when it hits
+    // (and stomps at) the end of the screen. Programs can disable it with a private
+    //  escape code.
+    autowrap: bool,
 }
 
 impl TtyState {
@@ -276,7 +280,8 @@ impl TtyState {
         let cursor_line = self.scrollback_start + self.cursor_pos.y as usize;
         let mut line_buffer = &mut self.scrollback_buffer[cursor_line];
 
-        if c == NEWLINE || (self.cursor_pos.x as usize >= self.size.cols - 1 && self.stomp) {
+        let cursor_needs_to_wrap = self.cursor_pos.x as usize >= self.size.cols - 1 && self.stomp;
+        if c == NEWLINE || (cursor_needs_to_wrap && self.autowrap) {
             self.stomp = false;
             self.cursor_pos.x = 0;
             self.cursor_pos.y += 1;
@@ -368,6 +373,7 @@ impl TtyState {
             escape_sequence_parser: EscapeSequenceParser::new(),
             text_style: TextStyle::new(),
             stomp: false,
+            autowrap: true,
         }
     }
 }
