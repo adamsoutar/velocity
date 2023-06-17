@@ -98,9 +98,6 @@ fn main() {
 
             for l in 0..tty.scrollback_buffer[row_id].len() {
                 let letter = tty.scrollback_buffer[row_id][l];
-                if letter.style.invisible {
-                    continue;
-                }
 
                 let char_pos = Vector2f::new(l as f32 * font_width, i as f32 * font_height);
 
@@ -112,6 +109,9 @@ fn main() {
                     letter.style.background,
                     DefaultColourVersion::Background,
                 );
+                if letter.style.invisible {
+                    fg_colour = bg_colour;
+                }
                 if letter.style.reverse_video {
                     std::mem::swap(&mut fg_colour, &mut bg_colour)
                 }
