@@ -12,14 +12,7 @@ cd velocity/velocity-sfml
 cargo run --release
 ```
 
-If you're on a platform other than macOS, you will likely run into a handful of
-small issues. You'll need to change the font path which is (for now) hardcoded
-in `./src/main.rs`.
+This will just build and work on macOS and Pop!_OS. It probably works on all
+Ubuntu-based things, and for that matter any Linux distro as long as you have Noto Mono installed.
 
-On certain distros, you might also need to start velocity as root due to an
-issue with velocity's use of `/bin/login`.
-
-```bash
-cargo build --release &&
-sudo ./target/release/velocity-sfml
-```
+I've tested it on macOS Ventura and Pop!_OS 22.04.
