@@ -108,6 +108,7 @@ impl EscapeSequenceParser {
             'J' => self.parse_csi_erase_in_display(),
             'K' => self.parse_csi_erase_in_line(),
             'm' => self.parse_csi_select_graphic_rendition(),
+            'c' => Some(EscapeSequence::FullReset),
             _ => {
                 println!("Ignoring CSI due to unknown final byte '{}'", c);
                 None

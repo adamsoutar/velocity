@@ -31,6 +31,8 @@ pub enum EscapeSequence {
     EnableAutoWrapMode,
     // Turns off Auto-Wrap mode
     DisableAutoWrapMode,
+    // VT-100 Full Reset (RIS)
+    FullReset, // ESC[c
 }
 
 #[derive(Debug)]

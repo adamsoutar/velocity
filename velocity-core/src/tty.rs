@@ -94,11 +94,24 @@ impl TtyState {
             EscapeSequence::PrivateDisableBracketedPasteMode => self.bracketed_paste_mode = false,
             EscapeSequence::EnableAutoWrapMode => self.autowrap = true,
             EscapeSequence::DisableAutoWrapMode => self.autowrap = false,
+            EscapeSequence::FullReset => self.apply_sequence_full_reset(),
             // As we go through the process of implementing these, we'll keep adding new
             // parsing code that then makes this match arm reachable.
             #[allow(unreachable_patterns)]
             _ => println!("Unhandled escape sequence {:?}", seq),
         }
+    }
+
+    fn apply_sequence_full_reset(&mut self) {
+        // Here we don't reset things like unicode parser state.
+        // Those are too low-level, we're only emulating a VT-100 reset.
+        self.cursor_pos = CursorPosition { x: 0, y: 0 };
+        self.scrollback_start = 0;
+        self.scrollback_buffer = VecDeque::with_capacity(self.size.rows);
+        self.bracketed_paste_mode = false;
+        self.text_style = TextStyle::new();
+        self.stomp = false;
+        self.autowrap = false;
     }
 
     fn apply_sequence_set_cursor_position(&mut self, args: &SetCursorPositionArgs) {
