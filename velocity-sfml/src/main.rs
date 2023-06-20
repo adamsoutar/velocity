@@ -1,7 +1,9 @@
 use colours::terminal_colour_to_sfml_colour;
 use colours::DefaultColourVersion;
+use velocity_core::constants::special_characters::ESCAPE;
 use velocity_core::tty::TtyState;
 
+use phf::phf_map;
 use sfml::graphics::*;
 use sfml::system::*;
 use sfml::window::*;
@@ -12,6 +14,14 @@ const FONT_SIZE: u32 = 24;
 
 const COLUMNS: usize = 80;
 const ROWS: usize = 25;
+
+static SPECIAL_KEYS: phf::Map<u8, u8> = phf_map! {
+    // Right arrow is SFML 71
+    71u8 => 68,
+    72u8 => 67,
+    73u8 => 65,
+    74u8 => 66,
+};
 
 fn main() {
     // TODO: Less font hardcoding. Eg, some Linux users might have their fonts in a different
@@ -57,6 +67,12 @@ fn main() {
                     system: _system,
                 } => {
                     let key_number = code as isize;
+
+                    if SPECIAL_KEYS.contains_key(&(key_number as u8)) {
+                        let buffer = [ESCAPE as u8, 91, SPECIAL_KEYS[&(key_number as u8)]];
+                        tty.write(&buffer);
+                    }
+
                     if key_number >= 0 && key_number <= 25 {
                         // These are alphabetical keys
                         // We don't support anything else at the moment

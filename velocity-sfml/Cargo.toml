@@ -16,3 +16,4 @@ long_description = "A terminal program with not-invented-here syndrome"
 [dependencies]
 velocity-core = { path = "../velocity-core" }
 sfml = "0.20.0"
+phf = { version = "0.11.1", features = ["macros"] }

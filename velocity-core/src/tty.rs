@@ -220,7 +220,10 @@ impl TtyState {
                 b if b & 0b1111_0000 == 0b1110_0000 => 3,
                 b if b & 0b1111_1000 == 0b1111_0000 => 4,
                 // Invalid character start, we've broken
-                _ => return Some(REPLACEMENT_CHARACTER),
+                _ => {
+                    println!("Invalid unicode byte: {}", b);
+                    return Some(REPLACEMENT_CHARACTER);
+                }
             };
         }
 
@@ -335,15 +338,8 @@ impl TtyState {
     }
 
     fn handle_c0_control_code(&mut self, c: char) {
-        let cursor_x = self.cursor_pos.x;
-        let line_buffer = self.get_current_line_ref();
         match c {
-            BACKSPACE => {
-                if cursor_x > 0 {
-                    line_buffer.remove(cursor_x as usize - 1);
-                }
-                self.cursor_pos.x -= 1
-            }
+            BACKSPACE => self.cursor_pos.x -= 1,
             CARRIAGE_RETURN => self.cursor_pos.x = 0,
             HORIZONTAL_TAB => {
                 // Move the cursor right to the next multiple of 8
