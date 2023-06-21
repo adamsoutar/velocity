@@ -75,8 +75,6 @@ fn main() {
                     };
 
                     if SPECIAL_KEYS.contains_key(&(key_number as u8)) {
-                        // TODO: If "Application Cursor Keys" is enabled, the middle byte
-                        //   should be 0x4F, not 91
                         let buffer = [ESCAPE as u8, middle_byte, SPECIAL_KEYS[&(key_number as u8)]];
                         tty.write(&buffer);
                     }
