@@ -33,6 +33,10 @@ pub enum EscapeSequence {
     DisableAutoWrapMode,
     // VT-100 Full Reset (RIS)
     FullReset, // ESC[c
+    // DECCKM - for less/more
+    SwitchToApplicationCursorKeys, // ESC[?1h
+    // DECCKM - for shells
+    SwitchToNormalCursorKeys, // ESC[?1l
 }
 
 #[derive(Debug)]

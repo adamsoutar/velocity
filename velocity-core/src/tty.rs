@@ -59,6 +59,10 @@ pub struct TtyState {
     // (and stomps at) the end of the screen. Programs can disable it with a private
     //  escape code.
     autowrap: bool,
+    // Cursor keys are either 'normal' or 'application'. This changes the byte we
+    // send in the middle of cursor key inputs. Similar to bracketed paste, see
+    // frontends like SFML for actual implementation.
+    pub application_cursor_keys: bool,
 }
 
 impl TtyState {
@@ -95,6 +99,8 @@ impl TtyState {
             EscapeSequence::EnableAutoWrapMode => self.autowrap = true,
             EscapeSequence::DisableAutoWrapMode => self.autowrap = false,
             EscapeSequence::FullReset => self.apply_sequence_full_reset(),
+            EscapeSequence::SwitchToApplicationCursorKeys => self.application_cursor_keys = true,
+            EscapeSequence::SwitchToNormalCursorKeys => self.application_cursor_keys = false,
             // As we go through the process of implementing these, we'll keep adding new
             // parsing code that then makes this match arm reachable.
             #[allow(unreachable_patterns)]
@@ -385,6 +391,7 @@ impl TtyState {
             text_style: TextStyle::new(),
             stomp: false,
             autowrap: true,
+            application_cursor_keys: false,
         }
     }
 }
