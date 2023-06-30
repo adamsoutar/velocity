@@ -50,6 +50,12 @@ fn main() {
         &Default::default(),
     );
 
+    // Running these two calls here shows our window basically immediately instead of
+    // waiting for the shell program to spawn. Makes startup time feel more responsive.
+    window.display();
+    window.poll_event();
+
+
     let mut tty = TtyState::new(COLUMNS, ROWS);
     loop {
         while let Some(ev) = window.poll_event() {
