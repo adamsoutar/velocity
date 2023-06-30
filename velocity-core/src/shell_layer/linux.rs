@@ -164,7 +164,7 @@ impl LinuxShellLayer {
         //   16 colour support is not configured. It only recognises 256color as ANSI.
         env_vars.push(CString::new("TERM=xterm-256color").unwrap());
         // This is just showing off :)
-        env_vars.push(CString::new("TERM_PROGRAM=velocity").unwrap());
+        env_vars.push(CString::new("TERM_PROGRAM=Velocity").unwrap());
 
         let mut c_env_vars: Vec<*const i8> = env_vars.iter().map(|s| s.as_ptr()).collect();
         // NULL-terminated

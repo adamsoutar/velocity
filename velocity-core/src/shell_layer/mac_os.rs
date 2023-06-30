@@ -139,8 +139,9 @@ impl MacOsShellLayer {
         // It also automatically spawns the user's preferred shell.
         let login_path = CString::new("/usr/bin/login").unwrap();
         // We use a special flag to tell login not to prompt us for a password, because we're
-        // going to spawn it as the current user anyway.
-        let login_force_flag = CString::new("-f").unwrap();
+        // going to spawn it as the current user anyway. The addition of "p", stolen from iTerm2,
+        // preserves the environment. That's what allows us to pass in variables like TERM_PROGRAM.
+        let login_force_flag = CString::new("-fp").unwrap();
         // And then we pass the user's username as the argument for the force flag.
         let user_name = CString::new(whoami::username()).unwrap();
 
@@ -150,9 +151,7 @@ impl MacOsShellLayer {
             // TODO: Eventually support xterm-256color
             CString::new("TERM=xterm-16color").unwrap(),
             // This is just showing off :)
-            // TODO: This doesn't seem to work on Apple Silicon. It's like it has a
-            //   whitelist of acceptable overriden env vars for /bin/login.
-            CString::new("TERM_PROGRAM=velocity").unwrap(),
+            CString::new("TERM_PROGRAM=Velocity").unwrap(),
         ];
         let mut c_env_vars: Vec<*const i8> = env_vars.iter().map(|s| s.as_ptr()).collect();
         // NULL-terminated

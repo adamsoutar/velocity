@@ -45,7 +45,7 @@ fn main() {
     let style = Style::RESIZE | Style::TITLEBAR | Style::CLOSE;
     let mut window = RenderWindow::new(
         (window_width, window_height),
-        "velocity",
+        "Velocity",
         style,
         &Default::default(),
     );
@@ -54,7 +54,6 @@ fn main() {
     // waiting for the shell program to spawn. Makes startup time feel more responsive.
     window.display();
     window.poll_event();
-
 
     let mut tty = TtyState::new(COLUMNS, ROWS);
     loop {
