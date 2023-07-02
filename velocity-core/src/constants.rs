@@ -36,4 +36,7 @@ pub mod special_characters {
     pub const OPERATING_SYSTEM_COMMAND: char = ']';
     pub const OPERATING_SYSTEM_COMMAND_SHORTCUT: char = '\u{009D}';
     pub const SPACE: char = ' ';
+    pub mod special_case_introducer {
+        pub const SCROLL_UP: char = 'M';
+    }
 }

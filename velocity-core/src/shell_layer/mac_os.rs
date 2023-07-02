@@ -77,6 +77,8 @@ impl MacOsShellLayer {
         };
         // NOTE: This result does NOT implement Drop, so the file descriptors must be
         //   closed manually (or realistically, we will leak them).
+        // TODO: According to man, it looks like we could use forkpty here to save ourselves
+        //   quite a bit of manual work in fork_and_become_shell_as_child_process()
         let pty_result = openpty(&winsize, None).expect("openpty() failed");
 
         let layer = MacOsShellLayer {

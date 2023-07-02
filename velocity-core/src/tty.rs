@@ -101,6 +101,9 @@ impl TtyState {
             EscapeSequence::FullReset => self.apply_sequence_full_reset(),
             EscapeSequence::SwitchToApplicationCursorKeys => self.application_cursor_keys = true,
             EscapeSequence::SwitchToNormalCursorKeys => self.application_cursor_keys = false,
+            EscapeSequence::MoveCursorUpScrollingIfNecessary => {
+                self.apply_sequence_move_cursor_up_scrolling_if_necessary()
+            }
             // As we go through the process of implementing these, we'll keep adding new
             // parsing code that then makes this match arm reachable.
             #[allow(unreachable_patterns)]
@@ -120,12 +123,25 @@ impl TtyState {
         self.autowrap = false;
     }
 
+    fn apply_sequence_move_cursor_up_scrolling_if_necessary(&mut self) {
+        if self.cursor_pos.y == 0 {
+            if self.scrollback_start == 0 {
+                return;
+            }
+
+            self.scrollback_start -= 1;
+            self.scrollback_buffer.pop_back();
+        } else {
+            self.set_cursor_pos(self.cursor_pos.x, self.cursor_pos.y - 1);
+        }
+    }
+
     fn apply_sequence_set_cursor_position(&mut self, args: &SetCursorPositionArgs) {
+        // These args are 1-indexed, but our cursor is 0-indexed.
         self.set_cursor_pos(args.x as isize - 1, args.y as isize - 1)
     }
 
     fn set_cursor_pos(&mut self, x: isize, y: isize) {
-        // These args are 1-indexed, but our cursor is 0-indexed.
         let max_x = self.size.cols as isize - 1;
         let max_y = self.size.rows as isize - 1;
         self.cursor_pos.x = min(max(x, 0), max_x);

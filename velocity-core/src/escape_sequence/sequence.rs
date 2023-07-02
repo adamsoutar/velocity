@@ -37,6 +37,8 @@ pub enum EscapeSequence {
     SwitchToApplicationCursorKeys, // ESC[?1h
     // DECCKM - for shells
     SwitchToNormalCursorKeys, // ESC[?1l
+    // Special control sequence, doesn't use CSI
+    MoveCursorUpScrollingIfNecessary, // ESC M
 }
 
 #[derive(Debug)]
