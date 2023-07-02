@@ -18,7 +18,7 @@ parsing, escape sequence implementation, etc. is all custom.
 </tr>
 <tr>
 <td>
-  <img src="./assets/screenshots/v-m2-neofetch.png">
+  <img src="./assets/screenshots/v-neofetch.png">
 </td>
 <td>
   <img src="./assets/screenshots/v-git.png">
