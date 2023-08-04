@@ -115,6 +115,9 @@ impl EscapeSequenceParser {
             'H' => self.parse_csi_set_cursor_position(),
             'J' => self.parse_csi_erase_in_display(),
             'K' => self.parse_csi_erase_in_line(),
+            'P' => Some(EscapeSequence::DeleteCharacters(
+                self.parse_csi_single_number_parameter(),
+            )),
             'h' => self.parse_csi_set_mode(),
             'l' => self.parse_csi_reset_mode(),
             'm' => self.parse_csi_select_graphic_rendition(),

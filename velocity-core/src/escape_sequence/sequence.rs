@@ -43,6 +43,8 @@ pub enum EscapeSequence {
     SetMode(SetOrResetModeType), // ESC[...h
     // Resets character insertion mode N
     ResetMode(SetOrResetModeType), // ESC[...l
+    // Delete N characters left(!) of the cursor, shifting the line buffer
+    DeleteCharacters(isize), // ESC[...P
 }
 
 #[derive(Debug)]

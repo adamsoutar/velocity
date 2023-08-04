@@ -112,11 +112,26 @@ impl TtyState {
             }
             EscapeSequence::SetMode(m) => self.apply_sequence_set_mode(m),
             EscapeSequence::ResetMode(m) => self.apply_sequence_reset_mode(m),
+            EscapeSequence::DeleteCharacters(n) => self.apply_sequence_delete_characters(*n),
             // As we go through the process of implementing these, we'll keep adding new
             // parsing code that then makes this match arm reachable.
             #[allow(unreachable_patterns)]
             _ => println!("Unhandled escape sequence {:?}", seq),
         }
+    }
+
+    fn apply_sequence_delete_characters(&mut self, count: isize) {
+        if count < 0 {
+            println!("Asked to DeleteCharacters with N < 0. Ignoring");
+            return;
+        }
+
+        let old_x = self.cursor_pos.x;
+        let line_buffer = self.get_current_line_ref();
+        for i in 0..count {
+            line_buffer.remove((old_x - i) as usize);
+        }
+        self.cursor_pos.x -= count;
     }
 
     fn apply_sequence_set_mode(&mut self, mode: &SetOrResetModeType) {
@@ -385,7 +400,7 @@ impl TtyState {
         }
 
         if self.cursor_pos.x as usize == self.size.cols - 1 {
-            // Slightly unusual legacy behaviour. See the comment in the struct
+            // Slightly unusual legacy behaviour. See the comment in the TtyState struct
             self.stomp = true;
         } else {
             self.cursor_pos.x += 1;
