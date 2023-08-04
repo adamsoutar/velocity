@@ -115,6 +115,8 @@ impl EscapeSequenceParser {
             'H' => self.parse_csi_set_cursor_position(),
             'J' => self.parse_csi_erase_in_display(),
             'K' => self.parse_csi_erase_in_line(),
+            'h' => self.parse_csi_set_mode(),
+            'l' => self.parse_csi_reset_mode(),
             'm' => self.parse_csi_select_graphic_rendition(),
             'c' => Some(EscapeSequence::FullReset),
             _ => {
@@ -193,6 +195,28 @@ impl EscapeSequenceParser {
         }
     }
 
+    fn parse_csi_set_mode(&mut self) -> Option<EscapeSequence> {
+        let mode_type = self.parse_csi_set_or_reset_mode_parameter();
+        let maybe_set_mode_enum = num::FromPrimitive::from_usize(mode_type);
+        if maybe_set_mode_enum.is_none() {
+            println!("Unknown CSI set mode type '{}'", mode_type);
+            return None;
+        } else {
+            return Some(EscapeSequence::SetMode(maybe_set_mode_enum.unwrap()));
+        }
+    }
+
+    fn parse_csi_reset_mode(&mut self) -> Option<EscapeSequence> {
+        let mode_type = self.parse_csi_set_or_reset_mode_parameter();
+        let maybe_set_mode_enum = num::FromPrimitive::from_usize(mode_type);
+        if maybe_set_mode_enum.is_none() {
+            println!("Unknown CSI reset mode type '{}'", mode_type);
+            return None;
+        } else {
+            return Some(EscapeSequence::ResetMode(maybe_set_mode_enum.unwrap()));
+        }
+    }
+
     fn parse_csi_erase_in_line(&mut self) -> Option<EscapeSequence> {
         let erase_type = self.parse_csi_erase_type_number();
         let maybe_erase_type_enum = num::FromPrimitive::from_usize(erase_type);
@@ -237,6 +261,19 @@ impl EscapeSequenceParser {
         erase_type
     }
 
+    fn parse_csi_set_or_reset_mode_parameter(&mut self) -> usize {
+        let param_string: String = self.csi_parameter_chars.iter().collect();
+        let mode_param = param_string.parse::<usize>().unwrap_or_else(|err| {
+            println!(
+                "Error parsing CSI Set/Reset mode type '{}', returning AutomaticNewline\n{:?}",
+                param_string, err
+            );
+            20 // (AutomaticNewline)
+        });
+
+        mode_param
+    }
+
     fn parse_csi_select_graphic_rendition(&mut self) -> Option<EscapeSequence> {
         if self.csi_parameter_chars.len() == 0 {
             // No arguments is a reset (top sends this)
@@ -245,7 +282,7 @@ impl EscapeSequenceParser {
             ]));
         }
 
-        let param_string: String = self.csi_parameter_chars.clone().into_iter().collect();
+        let param_string: String = self.csi_parameter_chars.iter().collect();
         let params: Vec<SGRCode> = param_string
             .split(';')
             .map(|sgr_code_str| {

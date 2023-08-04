@@ -39,6 +39,10 @@ pub enum EscapeSequence {
     SwitchToNormalCursorKeys, // ESC[?1l
     // Special control sequence, doesn't use CSI
     MoveCursorUpScrollingIfNecessary, // ESC M
+    // Sets character insertion mode N
+    SetMode(SetOrResetModeType), // ESC[...h
+    // Resets character insertion mode N
+    ResetMode(SetOrResetModeType), // ESC[...l
 }
 
 #[derive(Debug)]
@@ -62,6 +66,13 @@ pub enum EraseInLineType {
     ToEndOfLine = 0,
     ToStartOfLine = 1,
     EntireLine = 2,
+}
+
+#[derive(FromPrimitive, Debug, PartialEq)]
+pub enum SetOrResetModeType {
+    // Others are very old and not common
+    InsertionReplacement = 4,
+    AutomaticNewline = 20,
 }
 
 #[derive(FromPrimitive, Clone, Copy)]

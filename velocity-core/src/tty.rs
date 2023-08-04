@@ -4,7 +4,7 @@ use std::collections::VecDeque;
 use crate::constants::{special_characters::*, *};
 use crate::escape_sequence::parser::{EscapeSequenceParser, SequenceFinished};
 use crate::escape_sequence::sequence::{
-    EraseInDisplayType, EraseInLineType, EscapeSequence, SetCursorPositionArgs,
+    EraseInDisplayType, EraseInLineType, EscapeSequence, SetCursorPositionArgs, SetOrResetModeType,
 };
 use crate::shell_layer::{get_shell_layer, ShellLayer};
 use crate::text_styles::decorated_char::DecoratedChar;
@@ -22,10 +22,15 @@ pub struct CursorPosition {
 
 // Not vim-related.
 // Confession hidden deep in my source code: I have no idea how to use vim.
-// Indicates whether we're mid escape-sequence parsing or not
 enum InsertionMode {
-    Standard,
-    EscapeSequence,
+    // Also known as AutomaticNewline or LN.
+    // Chars are put into the cursor position and replace any already there.
+    // When the cursor reaches the right edge of the line buffer, it wraps.
+    Replace,
+    // Also known as InsertionReplacement or IRM.
+    // Chars are inserted into the line buffer at the cursor index and push others to the right.
+    // Any chars that are pushed off the right edge of the line buffer are lost.
+    Insert,
 }
 
 type LineType = VecDeque<DecoratedChar>;
@@ -48,6 +53,7 @@ pub struct TtyState {
     remaining_unicode_scalar_bytes: u8,
     insertion_mode: InsertionMode,
     escape_sequence_parser: EscapeSequenceParser,
+    am_parsing_escape_sequence: bool,
     text_style: TextStyle,
     // This is a strange feature where we wait when we get to the edge of the screen
     // for one character before doing a newline. This is so that programs can print
@@ -104,11 +110,29 @@ impl TtyState {
             EscapeSequence::MoveCursorUpScrollingIfNecessary => {
                 self.apply_sequence_move_cursor_up_scrolling_if_necessary()
             }
+            EscapeSequence::SetMode(m) => self.apply_sequence_set_mode(m),
+            EscapeSequence::ResetMode(m) => self.apply_sequence_reset_mode(m),
             // As we go through the process of implementing these, we'll keep adding new
             // parsing code that then makes this match arm reachable.
             #[allow(unreachable_patterns)]
             _ => println!("Unhandled escape sequence {:?}", seq),
         }
+    }
+
+    fn apply_sequence_set_mode(&mut self, mode: &SetOrResetModeType) {
+        self.insertion_mode = match mode {
+            // xterm/hterm have different names for these, compared to what I like to call them.
+            // I get confused by their names. Luckily, this here is my program, and I can do
+            // what I want. And I get to set my own bed time. Take that, mum!
+            SetOrResetModeType::AutomaticNewline => InsertionMode::Replace,
+            SetOrResetModeType::InsertionReplacement => InsertionMode::Insert,
+        };
+    }
+
+    fn apply_sequence_reset_mode(&mut self, _mode: &SetOrResetModeType) {
+        // This can do more, especially if you support mode insertion modes, but Velocity
+        // only supports this system.
+        self.insertion_mode = InsertionMode::Replace;
     }
 
     fn apply_sequence_full_reset(&mut self) {
@@ -273,24 +297,25 @@ impl TtyState {
         //   pre-date UTF-8 and therefore are defined in terms of ASCII.
         if let Some(parsed_char) = self.parse_partial_unicode(next_byte) {
             // println!("Char: {:?} ({})", parsed_char, parsed_char as usize);
-            match self.insertion_mode {
-                InsertionMode::Standard => self.standard_insert_char(parsed_char),
-                InsertionMode::EscapeSequence => self.escape_insert_char(parsed_char),
+            if self.am_parsing_escape_sequence {
+                self.escape_insert_char(parsed_char);
+            } else {
+                self.standard_insert_char(parsed_char);
             }
         }
     }
 
     fn escape_insert_char(&mut self, c: char) {
-        self.insertion_mode = match self.escape_sequence_parser.parse_character(c) {
+        self.am_parsing_escape_sequence = match self.escape_sequence_parser.parse_character(c) {
             // This sequence isn't over yet
-            SequenceFinished::No => InsertionMode::EscapeSequence,
+            SequenceFinished::No => true,
             // It's done, back to normals
             SequenceFinished::Yes(parse_result) => {
                 println!("Parsed: {:?}", parse_result);
                 if let Some(sequence) = parse_result {
                     self.apply_escape_sequence(&sequence);
                 }
-                InsertionMode::Standard
+                false
             }
         }
     }
@@ -301,7 +326,7 @@ impl TtyState {
         if c == ESCAPE {
             // That's the start of an escape sequence
             self.escape_sequence_parser = EscapeSequenceParser::new();
-            self.insertion_mode = InsertionMode::EscapeSequence;
+            self.am_parsing_escape_sequence = true;
             return;
         }
 
@@ -349,7 +374,15 @@ impl TtyState {
         while line_buffer.len() <= self.cursor_pos.x as usize {
             line_buffer.push_back(DecoratedChar::new(' ', self.text_style));
         }
-        line_buffer[self.cursor_pos.x as usize] = d_c;
+        match self.insertion_mode {
+            InsertionMode::Replace => line_buffer[self.cursor_pos.x as usize] = d_c,
+            InsertionMode::Insert => {
+                line_buffer.insert(self.cursor_pos.x as usize, d_c);
+                while line_buffer.len() > self.size.cols {
+                    line_buffer.pop_back();
+                }
+            }
+        }
 
         if self.cursor_pos.x as usize == self.size.cols - 1 {
             // Slightly unusual legacy behaviour. See the comment in the struct
@@ -361,7 +394,10 @@ impl TtyState {
 
     fn handle_c0_control_code(&mut self, c: char) {
         match c {
-            BACKSPACE => self.cursor_pos.x -= 1,
+            BACKSPACE => {
+                // TODO: Is backspace treated differently during InsertionMode::Insert?
+                self.cursor_pos.x -= 1
+            }
             CARRIAGE_RETURN => self.cursor_pos.x = 0,
             HORIZONTAL_TAB => {
                 // Move the cursor right to the next multiple of 8
@@ -402,8 +438,9 @@ impl TtyState {
             shell_layer,
             current_unicode_scalar: vec![],
             remaining_unicode_scalar_bytes: 0,
-            insertion_mode: InsertionMode::Standard,
+            insertion_mode: InsertionMode::Replace,
             escape_sequence_parser: EscapeSequenceParser::new(),
+            am_parsing_escape_sequence: false,
             text_style: TextStyle::new(),
             stomp: false,
             autowrap: true,
