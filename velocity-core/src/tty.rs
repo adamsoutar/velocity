@@ -39,6 +39,7 @@ type ScrollbackBufferType = VecDeque<LineType>;
 pub struct TtyState {
     pub size: TtySize,
     pub cursor_pos: CursorPosition,
+    pub cursor_visible: bool,
     pub scrollback_start: usize,
     pub scrollback_buffer: ScrollbackBufferType,
     pub bracketed_paste_mode: bool,
@@ -113,6 +114,8 @@ impl TtyState {
             EscapeSequence::SetMode(m) => self.apply_sequence_set_mode(m),
             EscapeSequence::ResetMode(m) => self.apply_sequence_reset_mode(m),
             EscapeSequence::DeleteCharacters(n) => self.apply_sequence_delete_characters(*n),
+            EscapeSequence::ShowCursor => self.cursor_visible = true,
+            EscapeSequence::HideCursor => self.cursor_visible = false,
             // As we go through the process of implementing these, we'll keep adding new
             // parsing code that then makes this match arm reachable.
             #[allow(unreachable_patterns)]
@@ -445,6 +448,7 @@ impl TtyState {
         TtyState {
             size,
             cursor_pos: CursorPosition { x: 0, y: 0 },
+            cursor_visible: true,
             scrollback_start: 0,
             scrollback_buffer: VecDeque::with_capacity(rows),
             bracketed_paste_mode: false,

@@ -45,6 +45,10 @@ pub enum EscapeSequence {
     ResetMode(SetOrResetModeType), // ESC[...l
     // Delete N characters left(!) of the cursor, shifting the line buffer
     DeleteCharacters(isize), // ESC[...P
+    // From the VT200, shows the cursor, obviously
+    ShowCursor, // ESC[?25h
+    // Opposite of ShowCursor, surprisingly
+    HideCursor, // ESC[?25l
 }
 
 #[derive(Debug)]

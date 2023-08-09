@@ -191,6 +191,8 @@ impl EscapeSequenceParser {
             _ if p_str == "?7" && c == 'l' => Some(EscapeSequence::DisableAutoWrapMode),
             _ if p_str == "?1" && c == 'h' => Some(EscapeSequence::SwitchToApplicationCursorKeys),
             _ if p_str == "?1" && c == 'l' => Some(EscapeSequence::SwitchToNormalCursorKeys),
+            _ if p_str == "?25" && c == 'h' => Some(EscapeSequence::ShowCursor),
+            _ if p_str == "?25" && c == 'l' => Some(EscapeSequence::HideCursor),
             _ => {
                 println!("Ignoring unknown CSI private sequence '{}', '{}'", p_str, c);
                 None

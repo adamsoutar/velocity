@@ -180,13 +180,16 @@ fn main() {
         // Cursor
         // TODO: Does text foreground colour colour the cursor?
         //   If it does, we can make TtyState's text_style public
-        let mut cursor_block = RectangleShape::with_size(Vector2f::new(font_width, font_height));
-        cursor_block.set_fill_color(Color::WHITE);
-        cursor_block.set_position(Vector2f::new(
-            tty.cursor_pos.x as f32 * font_width,
-            tty.cursor_pos.y as f32 * font_height,
-        ));
-        window.draw(&cursor_block);
+        if tty.cursor_visible {
+            let mut cursor_block =
+                RectangleShape::with_size(Vector2f::new(font_width, font_height));
+            cursor_block.set_fill_color(Color::WHITE);
+            cursor_block.set_position(Vector2f::new(
+                tty.cursor_pos.x as f32 * font_width,
+                tty.cursor_pos.y as f32 * font_height,
+            ));
+            window.draw(&cursor_block);
+        }
 
         window.display();
     }
