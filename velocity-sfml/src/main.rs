@@ -144,6 +144,8 @@ fn main() {
                 }
 
                 // First, draw the background behind the character
+                // TODO: Could we keep bg and char_text as constant references and
+                //   just paint them in different places?
                 let mut bg = RectangleShape::with_size(Vector2f::new(font_width, font_height));
                 bg.set_fill_color(bg_colour);
                 bg.set_position(char_pos);

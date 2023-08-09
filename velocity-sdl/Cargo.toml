@@ -1,0 +1,11 @@
+[package]
+name = "velocity-sdl"
+version = "0.1.0"
+authors = ["Adam Soutar <me@aso.sh>"]
+edition = "2021"
+description ="SDL2 backend for Velocity"
+
+[dependencies]
+velocity-core = { path = "../velocity-core" }
+sdl2 = { git = "https://github.com/Rust-SDL2/rust-sdl2.git", features = ["ttf"] }
+phf = { version = "0.11.1", features = ["macros"] }
