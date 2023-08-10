@@ -82,7 +82,7 @@ fn main() {
                     alt: _alt,
                     ctrl,
                     shift: _shift,
-                    system: _system,
+                    system,
                 } => {
                     let key_number = code as isize;
 
@@ -105,6 +105,13 @@ fn main() {
                             let buffer = [key_number as u8 + 1];
                             tty.write(&buffer);
                         }
+                    }
+
+                    if (ctrl || system) && key_number == 21 {
+                        // That's CMD or CTRL + V
+                        // Let's paste!
+                        let clipboard = clipboard::get_string();
+                        tty.write(clipboard.as_bytes());
                     }
                 }
                 Event::TextEntered { unicode } => {
