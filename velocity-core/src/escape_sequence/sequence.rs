@@ -15,7 +15,7 @@ pub enum EscapeSequence {
     // Moves the cursor to column n
     MoveCursorHorizontalAbsolute(isize), // ESC[...G
     // Moves the cursor to x, y (1-indexed). x and y default to 1 if not present
-    SetCursorPosition(SetCursorPositionArgs), // ESC[...H
+    SetCursorPosition(SetCursorPositionArgs), // ESC[...H | ESC[...f
     // Sets the TextStyle with which we render things
     SelectGraphicRendition(Vec<SGRCode>), // ESC[...m
     // Clears the line the cursor is on in various ways
