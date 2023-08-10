@@ -256,16 +256,11 @@ impl TtyState {
         if *erase_type == EraseInLineType::ToStartOfLine
             || *erase_type == EraseInLineType::EntireLine
         {
-            let diff = cursor_x - line.len() as isize;
+            let diff = min(line.len() as isize, cursor_x);
             if diff > 0 {
-                println!(
-                    "We've been asked to EraseToStartOfLine at cursor {}, line length: {}",
-                    cursor_x,
-                    line.len()
-                );
                 // This is just an efficient way to truncate() the other side.
                 // VecDeque doesn't have truncate_front
-                drop(line.drain(0..cursor_x as usize))
+                drop(line.drain(0..diff as usize))
             }
         }
     }
