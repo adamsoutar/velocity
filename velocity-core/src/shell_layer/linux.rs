@@ -64,6 +64,10 @@ impl ShellLayer for LinuxShellLayer {
     fn write(&mut self, data: &[u8]) {
         self.get_master_file().write_all(data).unwrap();
     }
+
+    fn resized(&mut self, new_rows: usize, new_cols: usize) {
+        println!("Window resizing on Linux is as-yet unsupported.");
+    }
 }
 
 impl LinuxShellLayer {

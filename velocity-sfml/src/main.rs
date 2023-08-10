@@ -70,7 +70,11 @@ fn main() {
                     // prevents showing a stretched texture.
                     let new_size = Vector2f::new(width as f32, height as f32);
                     window.set_view(&View::new(new_size.div(2f32), new_size));
-                    // TODO: Tell the actuall terminal that the size has changed
+                    // This is TTY stuff.
+                    let new_rows = (new_size.y / font_height) as usize;
+                    let new_cols = (new_size.x / font_width) as usize;
+                    println!("Window resized to {}x{}", new_cols, new_rows);
+                    tty.resized(new_rows, new_cols);
                 }
                 // NOTE: "system" is the Super key
                 Event::KeyPressed {

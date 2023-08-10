@@ -452,6 +452,17 @@ impl TtyState {
         }
     }
 
+    pub fn resized(&mut self, new_rows: usize, new_cols: usize) {
+        // TODO: Resize scrollback buffer if we got smaller?
+        self.size = TtySize {
+            rows: new_rows,
+            cols: new_cols,
+        };
+        self.scrollback_start = self.scrollback_buffer.len().saturating_sub(new_rows);
+        self.cursor_pos.y = self.cursor_pos.y.min(new_rows as isize - 1);
+        self.shell_layer.resized(new_rows, new_cols);
+    }
+
     pub fn read(&mut self) {
         self.shell_layer
             .read(&mut self.read_buffer, &mut self.read_buffer_length);

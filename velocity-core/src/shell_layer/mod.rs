@@ -13,6 +13,9 @@ pub trait ShellLayer {
     fn read(&mut self, buffer: &mut [u8; FD_BUFFER_SIZE_BYTES], written: &mut usize);
     // This is called by our GUI layer when the user hits a keyboard key
     fn write(&mut self, data: &[u8]);
+    // This is called when the GUI window is resized. It's called with the number of rows and
+    // collumns that fit into the new width and height of the window.
+    fn resized(&mut self, new_rows: usize, new_cols: usize);
 }
 
 pub fn get_shell_layer(rows: usize, cols: usize) -> Box<dyn ShellLayer> {

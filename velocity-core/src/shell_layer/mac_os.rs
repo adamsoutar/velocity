@@ -18,6 +18,8 @@ use std::{
 mod ioctl {
     // This macro generates a function definition - it doesn't actually *do* the ioctl
     ioctl_none_bad!(tiocsctty, libc::TIOCSCTTY);
+    // This is for letting the kernel TTY driver know that we've reisized the GUI window
+    ioctl_write_ptr!(tiocswinsz, b't', 103, libc::winsize);
 }
 
 pub struct MacOsShellLayer {
@@ -62,13 +64,24 @@ impl ShellLayer for MacOsShellLayer {
     fn write(&mut self, data: &[u8]) {
         self.get_master_file().write_all(data).unwrap();
     }
+
+    fn resized(&mut self, new_rows: usize, new_cols: usize) {
+        let winsize = winsize {
+            ws_col: new_cols as u16,
+            ws_row: new_rows as u16,
+            // TODO: Is this important?
+            ws_xpixel: 100,
+            ws_ypixel: 100,
+        };
+        unsafe {
+            ioctl::tiocswinsz(self.pty_result.slave, &winsize).unwrap();
+        }
+    }
 }
 
 impl MacOsShellLayer {
     pub fn new(rows: usize, cols: usize) -> Self {
         let winsize = winsize {
-            // TODO: We should just report exactly how big we are, but we don't support
-            //   stomping, so if we do that ZSH breaks.
             ws_col: cols as u16,
             ws_row: rows as u16,
             // TODO: Is this important?
