@@ -108,10 +108,9 @@ fn main() {
                     }
 
                     if (ctrl || system) && key_number == 21 {
-                        // That's CMD or CTRL + V
+                        // That's Cmd or Ctrl + V
                         // Let's paste!
-                        let clipboard = clipboard::get_string();
-                        tty.write(clipboard.as_bytes());
+                        tty.write(clipboard::get_string().as_bytes());
                     }
                 }
                 Event::TextEntered { unicode } => {
