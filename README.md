@@ -53,20 +53,8 @@ to it.
 
 ## Install me
 
-<table>
-<tr>
-<th>Running macOS?</th>
-<th>Something else for some reason?</th>
-</tr>
-<tr>
-<td><a href="https://github.com/adamsoutar/velocity/releases">
-  Download a release
-</a></td>
-<td>You'll need <a href="./build-instructions.md">
-  build instructions
-</a></td>
-</tr>
-</table>
+At the moment, Velocity has to be built from 
+source. See [build instructions](./build-instructions.md).
 
 ---
 
