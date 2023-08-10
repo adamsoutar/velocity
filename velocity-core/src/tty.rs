@@ -4,7 +4,8 @@ use std::collections::VecDeque;
 use crate::constants::{special_characters::*, *};
 use crate::escape_sequence::parser::{EscapeSequenceParser, SequenceFinished};
 use crate::escape_sequence::sequence::{
-    EraseInDisplayType, EraseInLineType, EscapeSequence, SetCursorPositionArgs, SetOrResetModeType,
+    CharacterSet, EraseInDisplayType, EraseInLineType, EscapeSequence, SetCursorPositionArgs,
+    SetOrResetModeType,
 };
 use crate::shell_layer::{get_shell_layer, ShellLayer};
 use crate::text_styles::decorated_char::DecoratedChar;
@@ -43,6 +44,7 @@ pub struct TtyState {
     pub scrollback_start: usize,
     pub scrollback_buffer: ScrollbackBufferType,
     pub bracketed_paste_mode: bool,
+    character_set: CharacterSet,
     read_buffer: [u8; FD_BUFFER_SIZE_BYTES],
     read_buffer_length: usize,
     shell_layer: Box<dyn ShellLayer>,
@@ -116,6 +118,7 @@ impl TtyState {
             EscapeSequence::DeleteCharacters(n) => self.apply_sequence_delete_characters(*n),
             EscapeSequence::ShowCursor => self.cursor_visible = true,
             EscapeSequence::HideCursor => self.cursor_visible = false,
+            EscapeSequence::DesignateG0CharacterSet(cs) => self.character_set = *cs,
             // As we go through the process of implementing these, we'll keep adding new
             // parsing code that then makes this match arm reachable.
             #[allow(unreachable_patterns)]
@@ -452,6 +455,7 @@ impl TtyState {
             scrollback_start: 0,
             scrollback_buffer: VecDeque::with_capacity(rows),
             bracketed_paste_mode: false,
+            character_set: CharacterSet::UnitedStatesASCII,
             read_buffer: [0; FD_BUFFER_SIZE_BYTES],
             read_buffer_length: 0,
             shell_layer,

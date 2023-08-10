@@ -3,3 +3,4 @@ vendors/
 *.test.txt
 .DS_Store
 flamegraph.svg
+ctlseqs.html

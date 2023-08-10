@@ -35,6 +35,7 @@ pub mod special_characters {
     pub const DEVICE_CONTROL_STRING_SHORTCUT: char = '\u{0090}';
     pub const OPERATING_SYSTEM_COMMAND: char = ']';
     pub const OPERATING_SYSTEM_COMMAND_SHORTCUT: char = '\u{009D}';
+    pub const DESIGNATE_G0_CHARACTER_SET: char = '(';
     pub const SPACE: char = ' ';
     pub mod special_case_introducer {
         pub const SCROLL_UP: char = 'M';

@@ -49,6 +49,8 @@ pub enum EscapeSequence {
     ShowCursor, // ESC[?25h
     // Opposite of ShowCursor, surprisingly
     HideCursor, // ESC[?25l
+    // Picks a CharacterSet for "G0", the default slot
+    DesignateG0CharacterSet(CharacterSet), // ESC(...
 }
 
 #[derive(Debug)]
@@ -101,6 +103,12 @@ pub enum TerminalColour {
     BrightMagenta = 15,
     BrightCyan = 16,
     BrightWhite = 17,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum CharacterSet {
+    UnitedStatesASCII,
+    // TODO: There are some other useful sets like DEC Technical/Line Drawing
 }
 
 // TODO: Move SGR stuff to its own file

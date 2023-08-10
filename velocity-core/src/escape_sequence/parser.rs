@@ -2,15 +2,16 @@ use std::num::IntErrorKind;
 
 use crate::constants::special_characters::*;
 
-use super::sequence::{EscapeSequence, SGRCode, SetCursorPositionArgs};
+use super::sequence::{CharacterSet, EscapeSequence, SGRCode, SetCursorPositionArgs};
 
 #[derive(PartialEq, Debug)]
 enum SequenceType {
-    Undetermined, // Don't know yet (just ESC so far)
-    CSI,          // Control Sequence Introducer (ESC followed by "[")
-    DCS,          // Device Control String (ESC followed by "P")
-    OSC,          // Operating System Command (ESC followed by "]")
-    NonStandard,  // Special ones made up by other programmers (ESC followed by a space)
+    Undetermined,       // Don't know yet (just ESC so far)
+    CSI,                // Control Sequence Introducer (ESC followed by "[")
+    DCS,                // Device Control String (ESC followed by "P")
+    OSC,                // Operating System Command (ESC followed by "]")
+    DesignateG0Charset, // Picks a VT100 character set (ESC followed by "(")
+    NonStandard,        // Special ones made up by other programmers (ESC followed by a space)
 }
 
 #[derive(Debug)]
@@ -25,8 +26,8 @@ pub enum SequenceFinished {
 pub struct EscapeSequenceParser {
     sequence_type: SequenceType,
     // These are based on the ECMA-48 Standard § 5.4
-    csi_parameter_chars: Vec<char>,
-    csi_intermediate_chars: Vec<char>,
+    parameter_chars: Vec<char>,
+    intermediate_chars: Vec<char>,
 }
 
 impl EscapeSequenceParser {
@@ -46,6 +47,7 @@ impl EscapeSequenceParser {
                 CONTROL_SEQUENCE_INTRODUCER => SequenceType::CSI,
                 DEVICE_CONTROL_STRING => SequenceType::DCS,
                 OPERATING_SYSTEM_COMMAND => SequenceType::OSC,
+                DESIGNATE_G0_CHARACTER_SET => SequenceType::DesignateG0Charset,
                 SPACE => SequenceType::NonStandard,
                 _ => {
                     println!("Unknown escape sequence introducer {:?}", c);
@@ -58,6 +60,7 @@ impl EscapeSequenceParser {
 
         match self.sequence_type {
             SequenceType::CSI => self.parse_csi_character(c),
+            SequenceType::DesignateG0Charset => self.parse_g0_designate_charset_character(c),
             // We haven't implement parsing for anything else yet
             _ => {
                 println!(
@@ -69,10 +72,29 @@ impl EscapeSequenceParser {
         }
     }
 
+    fn parse_g0_designate_charset_character(&mut self, c: char) -> SequenceFinished {
+        self.parameter_chars.push(c);
+        match c {
+            // There are multi-char sets like "%2"
+            '&' | '"' | '%' => return SequenceFinished::No,
+            _ => {}
+        }
+
+        let param_str: String = self.parameter_chars.iter().collect();
+        let char_set = match &param_str[..] {
+            "B" => CharacterSet::UnitedStatesASCII,
+            _ => {
+                println!("Unsupported G0 character set designation '{}'", param_str);
+                CharacterSet::UnitedStatesASCII
+            }
+        };
+        SequenceFinished::Yes(Some(EscapeSequence::DesignateG0CharacterSet(char_set)))
+    }
+
     fn parse_csi_character(&mut self, c: char) -> SequenceFinished {
         match c as usize {
-            0x30..=0x3F => self.csi_parameter_chars.push(c),
-            0x20..=0x2F => self.csi_intermediate_chars.push(c),
+            0x30..=0x3F => self.parameter_chars.push(c),
+            0x20..=0x2F => self.intermediate_chars.push(c),
             0x40..=0x7E => return SequenceFinished::Yes(self.parse_csi_final_byte(c)),
             _ => {
                 println!("Ignored unknown control sequence character '{}'", c);
@@ -83,7 +105,7 @@ impl EscapeSequenceParser {
     }
 
     fn parse_csi_final_byte(&mut self, c: char) -> Option<EscapeSequence> {
-        if self.csi_parameter_chars.len() > 0 && self.csi_parameter_chars[0] == '?' {
+        if self.parameter_chars.len() > 0 && self.parameter_chars[0] == '?' {
             // If a sequence begins ESC [ ?, it's a "private sequence". These are not standard,
             // but some of them (like "bracketed paste mode") are so commonly used that we should
             // support them.
@@ -123,14 +145,19 @@ impl EscapeSequenceParser {
             'm' => self.parse_csi_select_graphic_rendition(),
             'c' => Some(EscapeSequence::FullReset),
             _ => {
-                println!("Ignoring CSI due to unknown final byte '{}'", c);
+                let inter_string: String = self.intermediate_chars.iter().collect();
+                let param_string: String = self.parameter_chars.iter().collect();
+                println!(
+                    "Ignoring CSI '[{}{}{}' due to unknown final byte",
+                    inter_string, param_string, c
+                );
                 None
             }
         }
     }
 
     fn parse_csi_single_number_parameter(&mut self) -> isize {
-        let param_string: String = self.csi_parameter_chars.clone().into_iter().collect();
+        let param_string: String = self.parameter_chars.iter().collect();
         param_string.parse::<isize>().unwrap_or_else(|err| {
             // Let's not be noisy about omitted args.
             if *err.kind() != IntErrorKind::Empty {
@@ -147,8 +174,8 @@ impl EscapeSequenceParser {
         let mut x = 1;
         let mut y = 1;
 
-        if self.csi_parameter_chars.len() > 0 {
-            let param_string: String = self.csi_parameter_chars.clone().into_iter().collect();
+        if self.parameter_chars.len() > 0 {
+            let param_string: String = self.parameter_chars.clone().into_iter().collect();
             let split: Vec<&str> = param_string.split(';').collect();
             // There's at least a y argument because param chars > 0
             // NOTE: It's "row", then "column", not x then y
@@ -178,7 +205,7 @@ impl EscapeSequenceParser {
     }
 
     fn parse_csi_private_sequence_final_byte(&mut self, c: char) -> Option<EscapeSequence> {
-        let p_str: String = self.csi_parameter_chars.clone().into_iter().collect();
+        let p_str: String = self.parameter_chars.iter().collect();
         match c {
             // Eg. Enable bracketed paste is ESC[?2004h
             _ if p_str == "?2004" && c == 'h' => {
@@ -250,14 +277,14 @@ impl EscapeSequenceParser {
         // This is the default value if there are no parameter bytes
         let mut erase_type = 0;
 
-        if self.csi_parameter_chars.len() == 1 {
-            erase_type = self.csi_parameter_chars[0]
+        if self.parameter_chars.len() == 1 {
+            erase_type = self.parameter_chars[0]
                 .to_string()
                 .parse::<usize>()
                 .unwrap_or_else(|err| {
                     println!(
                         "Error parsing CSI erase type '{}', returning Noop\n{:?}",
-                        self.csi_parameter_chars[0], err
+                        self.parameter_chars[0], err
                     );
                     999
                 });
@@ -267,7 +294,7 @@ impl EscapeSequenceParser {
     }
 
     fn parse_csi_set_or_reset_mode_parameter(&mut self) -> usize {
-        let param_string: String = self.csi_parameter_chars.iter().collect();
+        let param_string: String = self.parameter_chars.iter().collect();
         let mode_param = param_string.parse::<usize>().unwrap_or_else(|err| {
             println!(
                 "Error parsing CSI Set/Reset mode type '{}', returning AutomaticNewline\n{:?}",
@@ -280,14 +307,14 @@ impl EscapeSequenceParser {
     }
 
     fn parse_csi_select_graphic_rendition(&mut self) -> Option<EscapeSequence> {
-        if self.csi_parameter_chars.len() == 0 {
+        if self.parameter_chars.len() == 0 {
             // No arguments is a reset (top sends this)
             return Some(EscapeSequence::SelectGraphicRendition(vec![
                 SGRCode::ResetAllTextStyles,
             ]));
         }
 
-        let param_string: String = self.csi_parameter_chars.iter().collect();
+        let param_string: String = self.parameter_chars.iter().collect();
         let params: Vec<SGRCode> = param_string
             .split(';')
             .map(|sgr_code_str| {
@@ -315,8 +342,8 @@ impl EscapeSequenceParser {
     pub fn new() -> EscapeSequenceParser {
         EscapeSequenceParser {
             sequence_type: SequenceType::Undetermined,
-            csi_parameter_chars: vec![],
-            csi_intermediate_chars: vec![],
+            parameter_chars: vec![],
+            intermediate_chars: vec![],
         }
     }
 }

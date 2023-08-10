@@ -105,3 +105,9 @@ etc.
 iTerm can be set to automatically open when things want a terminal.
 I can't remember how it does that. Is it being the default file handler
 of `.command` files or something?
+
+### Re: xterm window management commands
+
+"Iconify" seems to be what X Window Server calls minimising stuff.
+There's a function XIconifyWindow, and xterm's docs use "iconify" a lot. It
+means minised.
