@@ -1,3 +1,5 @@
+use std::ops::Div;
+
 use colours::terminal_colour_to_sfml_colour;
 use colours::DefaultColourVersion;
 use velocity_core::constants::special_characters::ESCAPE;
@@ -62,6 +64,13 @@ fn main() {
                 Event::Closed => {
                     window.close();
                     return;
+                }
+                Event::Resized { width, height } => {
+                    // Recreate the RenderWindow View. This is SFML stuff, and
+                    // prevents showing a stretched texture.
+                    let new_size = Vector2f::new(width as f32, height as f32);
+                    window.set_view(&View::new(new_size.div(2f32), new_size));
+                    // TODO: Tell the actuall terminal that the size has changed
                 }
                 // NOTE: "system" is the Super key
                 Event::KeyPressed {
