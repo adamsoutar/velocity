@@ -117,6 +117,10 @@ impl TtyState {
             EscapeSequence::MoveCursorDownScrollingIfNecessary => {
                 self.apply_sequence_move_cursor_down_scrolling_if_necessary()
             }
+            EscapeSequence::MoveCursorNextLineScrollingIfNecessary => {
+                self.apply_sequence_move_cursor_down_scrolling_if_necessary();
+                self.set_cursor_pos(0, self.cursor_pos.y);
+            }
             EscapeSequence::SetMode(m) => self.apply_sequence_set_mode(m),
             EscapeSequence::ResetMode(m) => self.apply_sequence_reset_mode(m),
             EscapeSequence::DeleteCharacters(n) => self.apply_sequence_delete_characters(*n),

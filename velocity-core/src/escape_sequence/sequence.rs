@@ -37,10 +37,12 @@ pub enum EscapeSequence {
     SwitchToApplicationCursorKeys, // ESC[?1h
     // DECCKM - for shells
     SwitchToNormalCursorKeys, // ESC[?1l
-    // Special control sequence, doesn't use CSI
+    // AKA Reverse Index or RI
     MoveCursorUpScrollingIfNecessary, // ESC M
-    // Special control sequence, doesn't use CSI
+    // AKA Index or IND
     MoveCursorDownScrollingIfNecessary, // ESC D
+    // AKA Next Line or NEL
+    MoveCursorNextLineScrollingIfNecessary, // ESC E
     // Sets character insertion mode N
     SetMode(SetOrResetModeType), // ESC[...h
     // Resets character insertion mode N

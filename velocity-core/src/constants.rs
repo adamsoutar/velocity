@@ -40,6 +40,8 @@ pub mod special_characters {
     pub mod special_case_introducer {
         // Also known as INDEX or IND
         pub const SCROLL_DOWN: char = 'D';
+        // Also known as NEL
+        pub const NEXT_LINE: char = 'E';
         // Also known as REVERSE INDEX or RI
         pub const SCROLL_UP: char = 'M';
     }

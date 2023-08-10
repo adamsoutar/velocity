@@ -35,25 +35,27 @@ impl EscapeSequenceParser {
     pub fn parse_character(&mut self, c: char) -> SequenceFinished {
         // println!("Parsing: {}", c);
         if self.sequence_type == SequenceType::Undetermined {
-            if c == special_case_introducer::SCROLL_UP {
-                // Special case, this sequence doesn't use an introducer
-                // It's used by programs like less and more
-                return SequenceFinished::Yes(Some(
-                    EscapeSequence::MoveCursorUpScrollingIfNecessary,
-                ));
-            }
-            if c == special_case_introducer::SCROLL_DOWN {
-                return SequenceFinished::Yes(Some(
-                    EscapeSequence::MoveCursorDownScrollingIfNecessary,
-                ));
-            }
-
             self.sequence_type = match c {
                 CONTROL_SEQUENCE_INTRODUCER => SequenceType::CSI,
                 DEVICE_CONTROL_STRING => SequenceType::DCS,
                 OPERATING_SYSTEM_COMMAND => SequenceType::OSC,
                 DESIGNATE_G0_CHARACTER_SET => SequenceType::DesignateG0Charset,
                 SPACE => SequenceType::NonStandard,
+                special_case_introducer::SCROLL_UP => {
+                    return SequenceFinished::Yes(Some(
+                        EscapeSequence::MoveCursorUpScrollingIfNecessary,
+                    ));
+                }
+                special_case_introducer::SCROLL_DOWN => {
+                    return SequenceFinished::Yes(Some(
+                        EscapeSequence::MoveCursorDownScrollingIfNecessary,
+                    ));
+                }
+                special_case_introducer::NEXT_LINE => {
+                    return SequenceFinished::Yes(Some(
+                        EscapeSequence::MoveCursorNextLineScrollingIfNecessary,
+                    ));
+                }
                 _ => {
                     println!("Unknown escape sequence introducer {:?}", c);
                     // We don't know how to parse this, so we're just going to call it a day.
