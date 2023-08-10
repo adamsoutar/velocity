@@ -111,3 +111,9 @@ of `.command` files or something?
 "Iconify" seems to be what X Window Server calls minimising stuff.
 There's a function XIconifyWindow, and xterm's docs use "iconify" a lot. It
 means minised.
+
+### GNU Nano and mid-line backspace
+
+I think mid-line backspace in GNU Nano is weird because we don't handle
+backspace in INSERT mode properly. UW PICO doesn't use INSERT mode for
+backspace.
