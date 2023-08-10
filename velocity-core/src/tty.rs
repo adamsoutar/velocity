@@ -123,6 +123,7 @@ impl TtyState {
             EscapeSequence::RepeatPreviousCharacter(n) => {
                 self.apply_sequence_repeat_previous_character(*n)
             }
+            EscapeSequence::SetLinePositionAbsolute(n) => self.set_cursor_pos(0, *n - 1),
             // As we go through the process of implementing these, we'll keep adding new
             // parsing code that then makes this match arm reachable.
             #[allow(unreachable_patterns)]

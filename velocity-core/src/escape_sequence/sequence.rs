@@ -53,6 +53,8 @@ pub enum EscapeSequence {
     DesignateG0CharacterSet(CharacterSet), // ESC(...
     // Repeat the previous character N times
     RepeatPreviousCharacter(isize), // ESC[...b
+    // Puts the cursor at [1, N] (1-indexed)
+    SetLinePositionAbsolute(isize), // ESC[...d
 }
 
 #[derive(Debug)]

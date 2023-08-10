@@ -140,6 +140,9 @@ impl EscapeSequenceParser {
             'P' => Some(EscapeSequence::DeleteCharacters(
                 self.parse_csi_single_number_parameter(),
             )),
+            'd' => Some(EscapeSequence::SetLinePositionAbsolute(
+                self.parse_csi_single_number_parameter(),
+            )),
             'b' => Some(EscapeSequence::RepeatPreviousCharacter(
                 self.parse_csi_single_number_parameter(),
             )),
