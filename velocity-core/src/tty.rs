@@ -114,6 +114,9 @@ impl TtyState {
             EscapeSequence::MoveCursorUpScrollingIfNecessary => {
                 self.apply_sequence_move_cursor_up_scrolling_if_necessary()
             }
+            EscapeSequence::MoveCursorDownScrollingIfNecessary => {
+                self.apply_sequence_move_cursor_down_scrolling_if_necessary()
+            }
             EscapeSequence::SetMode(m) => self.apply_sequence_set_mode(m),
             EscapeSequence::ResetMode(m) => self.apply_sequence_reset_mode(m),
             EscapeSequence::DeleteCharacters(n) => self.apply_sequence_delete_characters(*n),
@@ -189,6 +192,16 @@ impl TtyState {
             self.scrollback_buffer.pop_back();
         } else {
             self.set_cursor_pos(self.cursor_pos.x, self.cursor_pos.y - 1);
+        }
+    }
+
+    fn apply_sequence_move_cursor_down_scrolling_if_necessary(&mut self) {
+        if self.cursor_pos.y == self.size.rows as isize - 1 {
+            self.scrollback_buffer
+                .push_back(VecDeque::with_capacity(self.size.cols));
+            self.scrollback_start += 1;
+        } else {
+            self.set_cursor_pos(self.cursor_pos.x, self.cursor_pos.y + 1);
         }
     }
 

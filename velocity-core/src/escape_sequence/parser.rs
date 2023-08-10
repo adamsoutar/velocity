@@ -42,6 +42,11 @@ impl EscapeSequenceParser {
                     EscapeSequence::MoveCursorUpScrollingIfNecessary,
                 ));
             }
+            if c == special_case_introducer::SCROLL_DOWN {
+                return SequenceFinished::Yes(Some(
+                    EscapeSequence::MoveCursorDownScrollingIfNecessary,
+                ));
+            }
 
             self.sequence_type = match c {
                 CONTROL_SEQUENCE_INTRODUCER => SequenceType::CSI,

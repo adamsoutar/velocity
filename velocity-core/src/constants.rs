@@ -38,6 +38,9 @@ pub mod special_characters {
     pub const DESIGNATE_G0_CHARACTER_SET: char = '(';
     pub const SPACE: char = ' ';
     pub mod special_case_introducer {
+        // Also known as INDEX or IND
+        pub const SCROLL_DOWN: char = 'D';
+        // Also known as REVERSE INDEX or RI
         pub const SCROLL_UP: char = 'M';
     }
 }

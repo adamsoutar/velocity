@@ -39,6 +39,8 @@ pub enum EscapeSequence {
     SwitchToNormalCursorKeys, // ESC[?1l
     // Special control sequence, doesn't use CSI
     MoveCursorUpScrollingIfNecessary, // ESC M
+    // Special control sequence, doesn't use CSI
+    MoveCursorDownScrollingIfNecessary, // ESC D
     // Sets character insertion mode N
     SetMode(SetOrResetModeType), // ESC[...h
     // Resets character insertion mode N
