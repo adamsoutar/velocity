@@ -140,6 +140,9 @@ impl EscapeSequenceParser {
             'P' => Some(EscapeSequence::DeleteCharacters(
                 self.parse_csi_single_number_parameter(),
             )),
+            'b' => Some(EscapeSequence::RepeatPreviousCharacter(
+                self.parse_csi_single_number_parameter(),
+            )),
             'h' => self.parse_csi_set_mode(),
             'l' => self.parse_csi_reset_mode(),
             'm' => self.parse_csi_select_graphic_rendition(),

@@ -51,6 +51,8 @@ pub enum EscapeSequence {
     HideCursor, // ESC[?25l
     // Picks a CharacterSet for "G0", the default slot
     DesignateG0CharacterSet(CharacterSet), // ESC(...
+    // Repeat the previous character N times
+    RepeatPreviousCharacter(isize), // ESC[...b
 }
 
 #[derive(Debug)]

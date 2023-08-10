@@ -54,6 +54,7 @@ pub struct TtyState {
     // A unicode scalar is up to four bytes long, and we'll know how long it's
     // going to be when it starts
     remaining_unicode_scalar_bytes: u8,
+    previously_inserted_character: char,
     insertion_mode: InsertionMode,
     escape_sequence_parser: EscapeSequenceParser,
     am_parsing_escape_sequence: bool,
@@ -119,10 +120,19 @@ impl TtyState {
             EscapeSequence::ShowCursor => self.cursor_visible = true,
             EscapeSequence::HideCursor => self.cursor_visible = false,
             EscapeSequence::DesignateG0CharacterSet(cs) => self.character_set = *cs,
+            EscapeSequence::RepeatPreviousCharacter(n) => {
+                self.apply_sequence_repeat_previous_character(*n)
+            }
             // As we go through the process of implementing these, we'll keep adding new
             // parsing code that then makes this match arm reachable.
             #[allow(unreachable_patterns)]
             _ => println!("Unhandled escape sequence {:?}", seq),
+        }
+    }
+
+    fn apply_sequence_repeat_previous_character(&mut self, count: isize) {
+        for _ in 0..count {
+            self.standard_insert_char(self.previously_inserted_character);
         }
     }
 
@@ -352,6 +362,7 @@ impl TtyState {
         }
 
         self.ensure_backing_store_for_current_line();
+        self.previously_inserted_character = c;
 
         match c {
             BACKSPACE | CARRIAGE_RETURN | HORIZONTAL_TAB | BELL | FORMFEED => {
@@ -461,6 +472,7 @@ impl TtyState {
             shell_layer,
             current_unicode_scalar: vec![],
             remaining_unicode_scalar_bytes: 0,
+            previously_inserted_character: ' ',
             insertion_mode: InsertionMode::Replace,
             escape_sequence_parser: EscapeSequenceParser::new(),
             am_parsing_escape_sequence: false,
