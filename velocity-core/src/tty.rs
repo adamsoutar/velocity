@@ -21,6 +21,8 @@ pub struct TtySize {
     pub rows: usize,
 }
 
+// TODO: These shouldn't be isize.
+//   They can only be 0+ in practice and the code has weird bugs if they fall below 0
 pub struct CursorPosition {
     pub x: isize,
     pub y: isize,
@@ -446,7 +448,9 @@ impl TtyState {
         match c {
             BACKSPACE => {
                 // TODO: Is backspace treated differently during InsertionMode::Insert?
-                self.cursor_pos.x -= 1
+                if self.cursor_pos.x > 0 {
+                    self.cursor_pos.x -= 1
+                }
             }
             CARRIAGE_RETURN => self.cursor_pos.x = 0,
             HORIZONTAL_TAB => {
