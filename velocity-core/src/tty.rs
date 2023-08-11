@@ -11,6 +11,11 @@ use crate::shell_layer::{get_shell_layer, ShellLayer};
 use crate::text_styles::decorated_char::DecoratedChar;
 use crate::text_styles::text_style::TextStyle;
 
+// Max memory (roughly) in bytes that can be used by the scrollback buffer.
+// "Roughly" because it's actually measured in Unicode graphemes. If you're
+// using a lot of 4-byte chars, this could actually be more.
+const MAX_SCROLLBACK_BUFFER_CHARACTERS: usize = 200_000_000;
+
 pub struct TtySize {
     pub cols: usize,
     pub rows: usize,
@@ -452,6 +457,20 @@ impl TtyState {
         }
     }
 
+    fn clean_up_buffer_memory_usage(&mut self) {
+        // (Assume all lines are max length)
+        let buf_size = self.scrollback_buffer.len() * self.size.cols;
+        if buf_size < MAX_SCROLLBACK_BUFFER_CHARACTERS {
+            return;
+        }
+        let to_remove =
+            (buf_size.saturating_sub(MAX_SCROLLBACK_BUFFER_CHARACTERS) / self.size.cols) + 1;
+        for _ in 0..to_remove {
+            self.scrollback_buffer.pop_front();
+            self.scrollback_start -= 1;
+        }
+    }
+
     pub fn resized(&mut self, new_rows: usize, new_cols: usize) {
         // TODO: Resize scrollback buffer if we got smaller?
         self.size = TtySize {
@@ -474,6 +493,8 @@ impl TtyState {
         for i in 0..self.read_buffer_length {
             self.insert_byte(self.read_buffer[i])
         }
+
+        self.clean_up_buffer_memory_usage();
     }
 
     pub fn write(&mut self, data: &[u8]) {
